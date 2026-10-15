@@ -57,6 +57,100 @@ internal static unsafe partial class Native
     [LibraryImport(LibraryName, EntryPoint = "fs_engine_get_backend")]
     internal static partial int EngineGetBackend(IntPtr engine);
 
+    // --------------------------------------------------------------- entities
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_entity_create")]
+    internal static partial uint EntityCreate();
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_entity_destroy")]
+    internal static partial void EntityDestroy(uint entity);
+
+    // ---------------------------------------------------------------- renderer
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_renderer_create")]
+    internal static partial IntPtr RendererCreate(IntPtr engine);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_renderer_destroy")]
+    internal static partial int RendererDestroy(IntPtr engine, IntPtr renderer);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_renderer_begin_frame")]
+    internal static partial int RendererBeginFrame(IntPtr engine, IntPtr renderer,
+        IntPtr swapChain, ulong frameTimeNs, out int began);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_renderer_render")]
+    internal static partial int RendererRender(IntPtr engine, IntPtr renderer, IntPtr view);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_renderer_end_frame")]
+    internal static partial int RendererEndFrame(IntPtr engine, IntPtr renderer);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_renderer_set_clear_options")]
+    internal static partial int RendererSetClearOptions(IntPtr engine, IntPtr renderer,
+        float r, float g, float b, float a, int clear, int discard);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_renderer_read_pixels")]
+    internal static partial int RendererReadPixels(IntPtr engine, IntPtr renderer,
+        uint x, uint y, uint width, uint height);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_renderer_read_pixels_complete")]
+    internal static partial int RendererReadPixelsComplete(IntPtr engine, IntPtr renderer,
+        byte[] rgba, nuint capacity, out nuint bytesWritten);
+
+    // -------------------------------------------------------------- swap chain
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_swap_chain_create_headless")]
+    internal static partial IntPtr SwapChainCreateHeadless(IntPtr engine,
+        uint width, uint height, ulong flags);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_swap_chain_destroy")]
+    internal static partial int SwapChainDestroy(IntPtr engine, IntPtr swapChain);
+
+    // -------------------------------------------------------------------- view
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_view_create")]
+    internal static partial IntPtr ViewCreate(IntPtr engine);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_view_destroy")]
+    internal static partial int ViewDestroy(IntPtr engine, IntPtr view);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_view_set_scene")]
+    internal static partial int ViewSetScene(IntPtr engine, IntPtr view, IntPtr scene);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_view_set_camera")]
+    internal static partial int ViewSetCamera(IntPtr engine, IntPtr view, IntPtr camera);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_view_set_viewport")]
+    internal static partial int ViewSetViewport(IntPtr engine, IntPtr view,
+        int left, int bottom, uint width, uint height);
+
+    // ------------------------------------------------------------------- scene
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_scene_create")]
+    internal static partial IntPtr SceneCreate(IntPtr engine);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_scene_destroy")]
+    internal static partial int SceneDestroy(IntPtr engine, IntPtr scene);
+
+    // ------------------------------------------------------------------ camera
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_camera_create")]
+    internal static partial IntPtr CameraCreate(IntPtr engine, uint entity);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_camera_destroy")]
+    internal static partial int CameraDestroy(IntPtr engine, IntPtr camera);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_camera_set_projection")]
+    internal static partial int CameraSetProjection(IntPtr engine, IntPtr camera,
+        double fovDegrees, double aspect, double nearPlane, double farPlane,
+        int fovDirection);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_camera_look_at")]
+    internal static partial int CameraLookAt(IntPtr engine, IntPtr camera,
+        ReadOnlySpan<double> eye, ReadOnlySpan<double> center, ReadOnlySpan<double> up);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_camera_get_projection_matrix")]
+    internal static partial int CameraGetProjectionMatrix(IntPtr engine, IntPtr camera,
+        Span<float> matrix);
+
     // ------------------------------------------------------------ string helpers
 
     /// <summary>
@@ -78,4 +172,30 @@ internal static unsafe partial class Native
     internal static string FilamentCommit() => PtrToString(FilamentCommitPtr());
 
     internal static string GetLastError() => PtrToString(GetLastErrorPtr());
+}
+
+/// <summary>Status codes mirroring fs_status in the ABI.</summary>
+internal static class NativeStatus
+{
+    public const int Ok = 0;
+    public const int Error = 1;
+    public const int InvalidArg = 2;
+    public const int Unsupported = 3;
+    public const int Invalidated = 4;
+    public const int NotReady = 5;
+}
+
+internal static class StatusExtensions
+{
+    /// <summary>
+    /// Throws a <see cref="FilamentSharpException"/> with the native error
+    /// text when the status is not FS_OK.
+    /// </summary>
+    public static void Check(this int status, string operation)
+    {
+        if (status != NativeStatus.Ok)
+        {
+            throw ThrowHelper.NativeFailure(operation);
+        }
+    }
 }

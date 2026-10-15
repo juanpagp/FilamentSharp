@@ -7,6 +7,7 @@
 #include <backend/DriverEnums.h>
 
 #include <new>
+#include <vector>
 
 using filamentsharp::Registry;
 
@@ -75,6 +76,7 @@ FILAMENTSHARP_API void fs_engine_destroy(fs_engine_t* engine) {
 
         fs_engine* handle = nullptr;
         filament::Engine* doomed = nullptr;
+        std::vector<void*> children;
         {
             std::lock_guard<std::mutex> lock(Registry::mutex());
             handle = Registry::instance().engineLocked(engine);
@@ -82,9 +84,11 @@ FILAMENTSHARP_API void fs_engine_destroy(fs_engine_t* engine) {
                 // Unknown handle or already destroyed: no-op.
                 return;
             }
-            // Children become invalid the moment `alive` flips; erase their
-            // registrations so stale pointers cannot be looked up.
-            Registry::instance().removeAllChildrenLocked(handle);
+            // Children become invalid the moment `alive` flips. Their
+            // registrations are kept until Filament teardown completes
+            // (below), because wrappers may own memory Filament is still
+            // using (e.g. a pending readback buffer).
+            Registry::instance().collectChildrenLocked(handle, children);
             doomed = handle->engine;
             handle->engine = nullptr;
             // The wrapper itself is retained (documented in abi.h).
@@ -92,9 +96,22 @@ FILAMENTSHARP_API void fs_engine_destroy(fs_engine_t* engine) {
 
         // Destroy outside the registry mutex: this is the expensive,
         // thread-safe teardown. Nothing can reach `doomed` through the
-        // bridge anymore (alive == false guards every child path).
+        // bridge anymore (alive == false guards every child path). When
+        // Engine::destroy returns, all Filament work (including pending
+        // readback callbacks) has completed, so wrapper-owned buffers are
+        // no longer referenced.
         if (doomed != nullptr) {
             filament::Engine::destroy(&doomed);
+        }
+
+        // Now the child wrappers themselves can be freed safely. A racing
+        // child destroy between the two phases observed a dead engine and
+        // returned as a no-op without touching the wrapper.
+        {
+            std::lock_guard<std::mutex> lock(Registry::mutex());
+            for (void* child : children) {
+                Registry::instance().disposeChildLocked(child);
+            }
         }
     FS_END
 }

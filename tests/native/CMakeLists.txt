@@ -49,6 +49,14 @@ target_compile_options(test_engine PRIVATE -stdlib=libc++ -Wall -Wextra)
 
 add_test(NAME engine COMMAND test_engine)
 
+# ------------------------------------------------------------- test_rendering
+add_executable(test_rendering test_rendering.cpp)
+target_link_libraries(test_rendering PRIVATE FilamentSharp.Native)
+target_compile_features(test_rendering PRIVATE cxx_std_17)
+target_compile_options(test_rendering PRIVATE -stdlib=libc++ -Wall -Wextra)
+
+add_test(NAME rendering COMMAND test_rendering)
+
 # ------------------------------------------------------------- bridge_smoke
 add_executable(bridge_smoke bridge_smoke.cpp)
 target_link_libraries(bridge_smoke PRIVATE FilamentSharp.Native)
@@ -60,5 +68,5 @@ add_test(NAME bridge_smoke COMMAND bridge_smoke)
 # Every test that links the bridge needs to find the shared library; the dlopen
 # test needs it loadable by soname. Both are satisfied by prepending the
 # library's own directory to LD_LIBRARY_PATH.
-set_tests_properties(abi_c foundation bridge_smoke engine PROPERTIES
+set_tests_properties(abi_c foundation bridge_smoke engine rendering PROPERTIES
     ENVIRONMENT "LD_LIBRARY_PATH=$<TARGET_FILE_DIR:FilamentSharp.Native>:$ENV{LD_LIBRARY_PATH}")

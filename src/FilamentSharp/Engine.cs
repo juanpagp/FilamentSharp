@@ -110,6 +110,96 @@ public sealed class Engine : IDisposable
         _handle.Dispose();
     }
 
+    // ------------------------------------------------------------------
+    // Resource factories. Children are registered with the native ownership
+    // registry at creation; their SafeHandles release through the matching
+    // fs_*_destroy entry point, which is safe even after engine disposal.
+    // ------------------------------------------------------------------
+
+    /// <summary>Creates a renderer owned by this engine.</summary>
+    public Renderer CreateRenderer()
+    {
+        ThrowIfDisposed();
+        var raw = Native.RendererCreate(DangerousGetHandle());
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateRenderer");
+        }
+        return new Renderer(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.RendererDestroy(engine, handle); }));
+    }
+
+    /// <summary>
+    /// Creates a headless (offscreen) swap chain owned by this engine.
+    /// </summary>
+    /// <param name="width">Width in pixels (non-zero).</param>
+    /// <param name="height">Height in pixels (non-zero).</param>
+    /// <param name="flags">Optional configuration flags.</param>
+    public SwapChain CreateHeadlessSwapChain(uint width, uint height,
+        SwapChainConfig flags = SwapChainConfig.None)
+    {
+        ThrowIfDisposed();
+        if (width == 0 || height == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width),
+                "Swap chain dimensions must be non-zero.");
+        }
+        var raw = Native.SwapChainCreateHeadless(DangerousGetHandle(), width, height,
+            (ulong)flags);
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateHeadlessSwapChain");
+        }
+        return new SwapChain(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.SwapChainDestroy(engine, handle); }));
+    }
+
+    /// <summary>Creates a view owned by this engine.</summary>
+    public View CreateView()
+    {
+        ThrowIfDisposed();
+        var raw = Native.ViewCreate(DangerousGetHandle());
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateView");
+        }
+        return new View(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.ViewDestroy(engine, handle); }));
+    }
+
+    /// <summary>Creates a scene owned by this engine.</summary>
+    public Scene CreateScene()
+    {
+        ThrowIfDisposed();
+        var raw = Native.SceneCreate(DangerousGetHandle());
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateScene");
+        }
+        return new Scene(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.SceneDestroy(engine, handle); }));
+    }
+
+    /// <summary>
+    /// Creates a camera component on the given entity. The entity must be
+    /// valid (see <see cref="EntityManager.Create"/>).
+    /// </summary>
+    public Camera CreateCamera(Entity entity)
+    {
+        ThrowIfDisposed();
+        if (!entity.IsValid)
+        {
+            throw new ArgumentException("A valid entity is required.", nameof(entity));
+        }
+        var raw = Native.CameraCreate(DangerousGetHandle(), entity.Id);
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateCamera");
+        }
+        return new Camera(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.CameraDestroy(engine, handle); }), entity);
+    }
+
     internal IntPtr DangerousGetHandle()
     {
         ThrowIfDisposed();

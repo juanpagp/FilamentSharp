@@ -63,7 +63,8 @@ enum fs_status {
     FS_ERROR = 1,           /* generic failure; retrieve details via fs_get_last_error */
     FS_ERROR_INVALID_ARG = 2, /* a caller-supplied argument was null/invalid */
     FS_ERROR_UNSUPPORTED = 3, /* the request is not supported in this build */
-    FS_ERROR_INVALIDATED = 4  /* the owning engine has already been destroyed */
+    FS_ERROR_INVALIDATED = 4, /* the owning engine has already been destroyed */
+    FS_ERROR_NOT_READY = 5    /* the operation is still pending; retry later */
 };
 typedef enum fs_status fs_status;
 
@@ -147,6 +148,166 @@ FILAMENTSHARP_API void fs_engine_destroy(fs_engine_t* engine);
 /* Returns the backend actually in use by this engine, or FS_BACKEND_DEFAULT
    (0) with the error text set when the handle is invalid. */
 FILAMENTSHARP_API fs_backend fs_engine_get_backend(fs_engine_t* engine);
+
+/* ------------------------------------------------------------------ */
+/* Entities                                                            */
+/* ------------------------------------------------------------------ */
+
+/* Opaque entity identifier: a 32-bit id from Filament's global
+   EntityManager, valid process-wide. 0 is the null entity. */
+typedef uint32_t fs_entity_id;
+
+/* Creates a new entity id. Cannot fail under normal conditions. */
+FILAMENTSHARP_API fs_entity_id fs_entity_create(void);
+
+/* Destroys an entity id, removing all Filament components from it. */
+FILAMENTSHARP_API void fs_entity_destroy(fs_entity_id entity);
+
+/* ------------------------------------------------------------------ */
+/* Rendering infrastructure: renderer, swap chain, view, scene, camera */
+/* ------------------------------------------------------------------ */
+
+/* Opaque handles for engine-owned rendering resources. Destroy order:
+   children first, engine last (the engine destroy path also releases
+   anything left over, but explicit destruction is the documented contract). */
+typedef struct fs_renderer fs_renderer_t;
+typedef struct fs_swap_chain fs_swap_chain_t;
+typedef struct fs_view fs_view_t;
+typedef struct fs_scene fs_scene_t;
+typedef struct fs_camera fs_camera_t;
+
+/* Swap chain configuration flags (bitmask); values mirror
+   backend::SWAP_CHAIN_CONFIG_* at the pinned release. */
+enum fs_swap_chain_flags {
+    FS_SWAP_CHAIN_CONFIG_TRANSPARENT = 0x1,
+    FS_SWAP_CHAIN_CONFIG_READABLE = 0x2,
+    FS_SWAP_CHAIN_CONFIG_ENABLE_XCB = 0x4,
+    FS_SWAP_CHAIN_CONFIG_APPLE_CVPIXELBUFFER = 0x8,
+    FS_SWAP_CHAIN_CONFIG_SRGB_COLORSPACE = 0x10,
+    FS_SWAP_CHAIN_CONFIG_HAS_STENCIL_BUFFER = 0x20,
+    FS_SWAP_CHAIN_CONFIG_PROTECTED_CONTENT = 0x40,
+    FS_SWAP_CHAIN_CONFIG_MSAA_4_SAMPLES = 0x80
+};
+typedef uint64_t fs_swap_chain_flags_t;
+
+/* Camera field-of-view direction. */
+enum fs_fov_direction {
+    FS_FOV_VERTICAL = 0,
+    FS_FOV_HORIZONTAL = 1
+};
+
+/* ---- Renderer --------------------------------------------------------- */
+
+/* Creates a renderer. NULL on failure (engine null/destroyed). */
+FILAMENTSHARP_API fs_renderer_t* fs_renderer_create(fs_engine_t* engine);
+
+/* Destroys a renderer. No-op when the engine has already been destroyed
+   (FS_OK). Invalid handles return FS_ERROR_INVALID_ARG. */
+FILAMENTSHARP_API fs_status fs_renderer_destroy(fs_engine_t* engine, fs_renderer_t* renderer);
+
+/* Begins a frame on the given swap chain.
+   out_began receives 1 when the frame was acquired (call render/end_frame)
+   or 0 when the frame was skipped (e.g. vsync backpressure).
+   frame_time_ns is the target vsync timestamp in nanoseconds (0 = now). */
+FILAMENTSHARP_API fs_status fs_renderer_begin_frame(fs_engine_t* engine,
+        fs_renderer_t* renderer, fs_swap_chain_t* swap_chain,
+        uint64_t frame_time_ns, int32_t* out_began);
+
+/* Renders a view into the current frame (between begin_frame and end_frame). */
+FILAMENTSHARP_API fs_status fs_renderer_render(fs_engine_t* engine,
+        fs_renderer_t* renderer, fs_view_t* view);
+
+/* Ends the current frame and presents it. */
+FILAMENTSHARP_API fs_status fs_renderer_end_frame(fs_engine_t* engine,
+        fs_renderer_t* renderer);
+
+/* Sets the clear options used at the start of each frame. The clear color is
+   given in linear RGBA by value; clear/discard are 0/1. */
+FILAMENTSHARP_API fs_status fs_renderer_set_clear_options(fs_engine_t* engine,
+        fs_renderer_t* renderer, float r, float g, float b, float a,
+        int32_t clear, int32_t discard);
+
+/* Queues an asynchronous RGBA8 readback of the current swap chain region.
+   Call between render and end_frame. Only one readback may be pending per
+   renderer; retrieve the result with fs_renderer_read_pixels_complete. */
+FILAMENTSHARP_API fs_status fs_renderer_read_pixels(fs_engine_t* engine,
+        fs_renderer_t* renderer, uint32_t x, uint32_t y,
+        uint32_t width, uint32_t height);
+
+/* Completes the pending readback: flushes the engine and waits, then copies
+   out_rgba (width*height*4 bytes; out_capacity must be at least that).
+   Sets *out_bytes_written. Returns FS_ERROR_NOT_READY when the readback has
+   not completed yet (retry after another frame). On success the pending
+   readback is released. */
+FILAMENTSHARP_API fs_status fs_renderer_read_pixels_complete(fs_engine_t* engine,
+        fs_renderer_t* renderer, uint8_t* out_rgba, uintptr_t out_capacity,
+        uintptr_t* out_bytes_written);
+
+/* ---- Swap chain -------------------------------------------------------- */
+
+/* Creates a headless (offscreen) swap chain of the given size. This is the
+   platform-independent surface: no window system handle is involved. */
+FILAMENTSHARP_API fs_swap_chain_t* fs_swap_chain_create_headless(
+        fs_engine_t* engine, uint32_t width, uint32_t height,
+        fs_swap_chain_flags_t flags);
+
+/* Destroys a swap chain (same semantics as fs_renderer_destroy). */
+FILAMENTSHARP_API fs_status fs_swap_chain_destroy(fs_engine_t* engine,
+        fs_swap_chain_t* swap_chain);
+
+/* ---- View -------------------------------------------------------------- */
+
+/* Creates a view. */
+FILAMENTSHARP_API fs_view_t* fs_view_create(fs_engine_t* engine);
+
+/* Destroys a view (same semantics as fs_renderer_destroy). */
+FILAMENTSHARP_API fs_status fs_view_destroy(fs_engine_t* engine, fs_view_t* view);
+
+/* Sets the view's scene (scene may be NULL to detach). */
+FILAMENTSHARP_API fs_status fs_view_set_scene(fs_engine_t* engine, fs_view_t* view,
+        fs_scene_t* scene);
+
+/* Sets the view's camera. */
+FILAMENTSHARP_API fs_status fs_view_set_camera(fs_engine_t* engine, fs_view_t* view,
+        fs_camera_t* camera);
+
+/* Sets the view's viewport in pixels. */
+FILAMENTSHARP_API fs_status fs_view_set_viewport(fs_engine_t* engine, fs_view_t* view,
+        int32_t left, int32_t bottom, uint32_t width, uint32_t height);
+
+/* ---- Scene ------------------------------------------------------------- */
+
+/* Creates a scene. */
+FILAMENTSHARP_API fs_scene_t* fs_scene_create(fs_engine_t* engine);
+
+/* Destroys a scene (same semantics as fs_renderer_destroy). */
+FILAMENTSHARP_API fs_status fs_scene_destroy(fs_engine_t* engine, fs_scene_t* scene);
+
+/* ---- Camera ------------------------------------------------------------ */
+
+/* Creates a camera component on the given entity (must be non-zero).
+   Destroy with fs_camera_destroy (or fs_entity_destroy for the entity). */
+FILAMENTSHARP_API fs_camera_t* fs_camera_create(fs_engine_t* engine,
+        fs_entity_id entity);
+
+/* Destroys a camera (removes the camera component from its entity). */
+FILAMENTSHARP_API fs_status fs_camera_destroy(fs_engine_t* engine,
+        fs_camera_t* camera);
+
+/* Sets a perspective projection. fov_degrees > 0, aspect > 0, far > near > 0. */
+FILAMENTSHARP_API fs_status fs_camera_set_projection(fs_engine_t* engine,
+        fs_camera_t* camera, double fov_degrees, double aspect,
+        double near_plane, double far_plane, int32_t fov_direction);
+
+/* Orients the camera: eye/center/up point to 3 doubles each. */
+FILAMENTSHARP_API fs_status fs_camera_look_at(fs_engine_t* engine,
+        fs_camera_t* camera, const double* eye, const double* center,
+        const double* up);
+
+/* Writes the camera's 4x4 projection matrix into out_matrix (16 floats,
+   column-major, Filament's memory layout). */
+FILAMENTSHARP_API fs_status fs_camera_get_projection_matrix(fs_engine_t* engine,
+        fs_camera_t* camera, float* out_matrix);
 
 #ifdef __cplusplus
 } /* extern "C" */
