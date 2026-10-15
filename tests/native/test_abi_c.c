@@ -40,12 +40,18 @@ int main(void) {
     const char* (*filament_commit)(void) = (const char* (*)(void))dlsym(handle, "fs_filament_commit");
     const char* (*get_last_error)(void) = (const char* (*)(void))dlsym(handle, "fs_get_last_error");
     void (*clear_last_error)(void) = (void (*)(void))dlsym(handle, "fs_clear_last_error");
+    fs_engine_t* (*engine_create)(fs_backend) = (fs_engine_t * (*)(fs_backend))dlsym(handle, "fs_engine_create");
+    void (*engine_destroy)(fs_engine_t*) = (void (*)(fs_engine_t*))dlsym(handle, "fs_engine_destroy");
+    fs_backend (*engine_get_backend)(fs_engine_t*) = (fs_backend (*)(fs_engine_t*))dlsym(handle, "fs_engine_get_backend");
 
     CHECK(abi_version != NULL);
     CHECK(filament_version != NULL);
     CHECK(filament_commit != NULL);
     CHECK(get_last_error != NULL);
     CHECK(clear_last_error != NULL);
+    CHECK(engine_create != NULL);
+    CHECK(engine_destroy != NULL);
+    CHECK(engine_get_backend != NULL);
     if (g_failures > 0) {
         fprintf(stderr, "symbol resolution failed\n");
         dlclose(handle);
@@ -68,12 +74,23 @@ int main(void) {
     clear_last_error();
     CHECK(strcmp(get_last_error(), "") == 0);
 
+    /* Engine entry points callable through the C ABI (full lifecycle tests
+       live in test_engine, which links the bridge directly). */
+    engine_destroy(NULL);
+    fs_engine_t* noop = engine_create(FS_BACKEND_NOOP);
+    CHECK(noop != NULL);
+    if (noop != NULL) {
+        CHECK(engine_get_backend(noop) == FS_BACKEND_NOOP);
+        engine_destroy(noop);
+        engine_destroy(noop); /* idempotent */
+    }
+
     dlclose(handle);
 
     if (g_failures > 0) {
         fprintf(stderr, "test_abi_c: %d failure(s)\n", g_failures);
         return 1;
     }
-    printf("test_abi_c: OK (header is valid C; %d symbols resolved and validated)\n", 5);
+    printf("test_abi_c: OK (header is valid C; %d symbols resolved and validated)\n", 8);
     return 0;
 }

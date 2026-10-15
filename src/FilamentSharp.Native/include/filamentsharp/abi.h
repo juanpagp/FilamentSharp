@@ -62,9 +62,26 @@ enum fs_status {
     FS_OK = 0,              /* success */
     FS_ERROR = 1,           /* generic failure; retrieve details via fs_get_last_error */
     FS_ERROR_INVALID_ARG = 2, /* a caller-supplied argument was null/invalid */
-    FS_ERROR_UNSUPPORTED = 3  /* the request is not supported in this build */
+    FS_ERROR_UNSUPPORTED = 3, /* the request is not supported in this build */
+    FS_ERROR_INVALIDATED = 4  /* the owning engine has already been destroyed */
 };
 typedef enum fs_status fs_status;
+
+/* Rendering backend selection. Values mirror filament::backend::Backend at
+   the pinned release; managed code marshals them as int32. */
+enum fs_backend {
+    FS_BACKEND_DEFAULT = 0,
+    FS_BACKEND_OPENGL = 1,
+    FS_BACKEND_VULKAN = 2,
+    FS_BACKEND_METAL = 3,
+    FS_BACKEND_WEBGPU = 4,
+    FS_BACKEND_NOOP = 5
+};
+typedef enum fs_backend fs_backend;
+
+/* Opaque engine handle. Obtained from fs_engine_create, released with
+   fs_engine_destroy. All other resources are owned by an engine. */
+typedef struct fs_engine fs_engine_t;
 
 /* ------------------------------------------------------------------ */
 /* Versioning                                                          */
@@ -93,6 +110,43 @@ FILAMENTSHARP_API const char* fs_get_last_error(void);
 
 /* Clears the calling thread's error state. */
 FILAMENTSHARP_API void fs_clear_last_error(void);
+
+/* ------------------------------------------------------------------ */
+/* Engine lifecycle                                                    */
+/* ------------------------------------------------------------------ */
+
+/* Creates a Filament engine with the requested backend.
+
+   backend: one of fs_backend; FS_BACKEND_DEFAULT lets Filament choose
+   (Vulkan on Linux at the pinned release).
+
+   Returns an engine handle, or NULL on failure with the thread-local error
+   text set. Failure to initialize a graphics backend (e.g. no Vulkan ICD)
+   is reported as an ordinary error.
+
+   WARNING (upstream behavior at the pinned release v1.78.0): requesting
+   FS_BACKEND_OPENGL on Linux without a running X server terminates the
+   process inside Filament ("Failed to open X display"); this cannot be
+   converted into an error return by the bridge. Choose the backend
+   deliberately. */
+FILAMENTSHARP_API fs_engine_t* fs_engine_create(fs_backend backend);
+
+/* Destroys an Filament engine and everything it owns.
+
+   - Idempotent: destroying the same handle twice is a no-op.
+   - After this call, every child resource handle owned by the engine is
+   invalidated: destroying a child becomes a documented no-op (FS_OK), and
+   any other child operation returns FS_ERROR_INVALIDATED instead of
+   touching freed memory.
+   - The engine wrapper itself is retained internally (not freed) so late
+   child releases can detect invalidation safely; only the underlying
+   Filament engine and its resources are destroyed.
+   - Internally synchronized; safe to call from a finalizer thread. */
+FILAMENTSHARP_API void fs_engine_destroy(fs_engine_t* engine);
+
+/* Returns the backend actually in use by this engine, or FS_BACKEND_DEFAULT
+   (0) with the error text set when the handle is invalid. */
+FILAMENTSHARP_API fs_backend fs_engine_get_backend(fs_engine_t* engine);
 
 #ifdef __cplusplus
 } /* extern "C" */
