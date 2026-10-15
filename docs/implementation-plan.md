@@ -29,14 +29,24 @@ The reference development environment is a constrained, headless container:
 | .NET SDK | 10.0.402 (user-local, outside the repo) |
 | GPU / display | **None** (no `/dev/dri`, no X11/Wayland) |
 | EGL | No system `libEGL.so.1`; user-local Mesa EGL (llvmpipe software rendering) assembled from official Debian packages into a repo-external sysroot |
-| Vulkan | Loader present, **no ICD** — Vulkan backend cannot be exercised |
+| Vulkan | Loader present, **no ICD** — software rendering achieved with a user-local Mesa lavapipe ICD assembled from the official `mesa-vulkan-drivers` Debian package |
 | Network | Full outbound (github.com, nuget.org reachable) |
 
-Consequences:
+Consequences (verified empirically against the real SDK):
 
-* Real rendering must run through **OpenGL + EGL with llvmpipe** (Mesa software
-  rasterizer) using a *headless* (offscreen) swap chain, or fall back to the
-  **NOOP** backend for lifecycle-only testing.
+* The release SDK's static libraries are built with **libc++** (`std::__1`
+  symbols), so the native bridge is built with **clang + libc++**, and linked
+  with **lld** (GNU `ld` takes over 10 minutes on this machine; lld links the
+  same inputs in about one second).
+* The Filament **OpenGL backend requires X11/GLX on Linux** — engine creation
+  aborts with "Failed to open X display" even for headless swap chains, and
+  it does not use EGL on this platform. GL is therefore selectable in the API
+  but cannot be exercised in this environment without an X server.
+* **Vulkan + Mesa lavapipe** (software ICD) works fully headless: engine,
+  frame rendering, and synchronous `readPixels` readback all verified.
+  Rendering tests run on this path.
+* The **NOOP backend** works for GPU-free lifecycle testing (callbacks fire,
+  pixel readback returns zeroes).
 * A full upstream Filament **source build** is possible but expensive on 2
   cores / 4 GiB. The default dependency strategy therefore consumes the
   **official prebuilt release SDK**, and the source-build path is documented
@@ -107,10 +117,11 @@ Key decisions:
 
 ## 5. Platform scope
 
-* **Tier 1 (implemented + tested here)**: Linux x64, OpenGL backend (headless,
-  llvmpipe), NOOP backend. Native AOT publish + run.
-* **Tier 2 (implemented, untested here)**: Linux x64 with a real GPU/EGL;
-  Vulkan backend selection is exposed but could not be exercised (no ICD).
+* **Tier 1 (implemented + tested here)**: Linux x64, **Vulkan backend (headless,
+  lavapipe software rendering)**, NOOP backend. Native AOT publish + run.
+* **Tier 2 (implemented, untested here)**: Linux x64 with a real GPU (Vulkan
+  or OpenGL/X11); the OpenGL backend requires a running X server on Linux
+  (GLX) — verified limitation, not an API gap.
 * **Out of scope for this iteration** (documented, not implemented): Windows,
   macOS/Metal, Android, WebGPU, windowed swap chains from OS handles on X11
   (an advanced overload exists for native windows on Linux).
@@ -174,7 +185,8 @@ commit; the history reflects the real development order.
 | Risk | Mitigation |
 |------|------------|
 | OOM during any native compile (2 cores/4 GiB) | `-j1`/`-j2` budgets, bridge is small; full Filament source build is optional |
-| llvmpipe rendering differences vs GPU | pixel assertions use tolerant thresholds and structural checks (foreground/background separation) rather than exact colors |
-| No Vulkan ICD | Vulkan selectable but untested; documented |
+| lavapipe rendering differences vs GPU | pixel assertions use tolerant thresholds (±0.12) and structural checks (foreground/background separation, channel dominance) rather than exact colors; calibration numbers recorded in docs/testing.md |
+| OpenGL backend needs X11 (GLX) on Linux | rendering tests run on Vulkan+lavapipe; GL selectable and documented |
 | glTF ubershader availability | SDK ships `libuberarchive.a`; fallback: `matc`-compiled minimal materials |
 | Release SDK lacks CMake package config | bridge CMake defines explicit imported targets for the SDK layout and also accepts a source-built install of the same layout |
+| Release SDK built with libc++ | bridge toolchain pinned to clang + libc++ + lld (documented in docs/building.md) |
