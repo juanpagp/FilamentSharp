@@ -64,6 +64,14 @@ internal static class NativeLibraryResolver
             string baseDir = AppContext.BaseDirectory;
             candidates.Add(Path.Combine(baseDir, fileName));
 
+            // NuGet runtime-specific native asset location.
+            candidates.Add(Path.Combine(
+                baseDir,
+                "runtimes",
+                RuntimeInformation.RuntimeIdentifier,
+                "native",
+                fileName));
+
             // 3. Development checkout layout, walking up from the base directory.
             var dir = baseDir;
             for (int i = 0; i < 8; i++)

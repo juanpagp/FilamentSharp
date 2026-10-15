@@ -5,7 +5,7 @@
     <Authors>FilamentSharp contributors</Authors>
     <Copyright>Copyright (c) 2026 FilamentSharp contributors</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryUrl>https://example.invalid/filamentsharp</RepositoryUrl>
+    <RepositoryUrl>https://github.com/juanpagp/FilamentSharp</RepositoryUrl>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsAotCompatible>true</IsAotCompatible>
@@ -16,6 +16,12 @@
   <ItemGroup>
     <InternalsVisibleTo Include="FilamentSharp.UnitTests" />
     <InternalsVisibleTo Include="FilamentSharp.IntegrationTests" />
+    <None 
+      Include="$(MSBuildThisFileDirectory)../../external/native-install/lib/libFilamentSharp.Native.so"
+      Pack="true"
+      PackagePath="runtimes/linux-x64/native/"
+      Visible="false"
+    />
   </ItemGroup>
 
 </Project>
