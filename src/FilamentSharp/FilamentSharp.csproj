@@ -13,5 +13,9 @@
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <IsTrimmable>true</IsTrimmable>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="FilamentSharp.UnitTests" />
+    <InternalsVisibleTo Include="FilamentSharp.IntegrationTests" />
+  </ItemGroup>
 
 </Project>
