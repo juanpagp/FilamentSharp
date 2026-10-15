@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>WindowedRendering — FilamentSharp sample: a real X11 window presenting live-rendered frames (lit, textured, animated quad) through a native-window swap chain, with resize handling and clean shutdown.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
+    <!-- Self-contained Native AOT publish is driven by scripts/publish-aot.sh. -->
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FilamentSharp\FilamentSharp.csproj" />
+  </ItemGroup>
+
+</Project>
