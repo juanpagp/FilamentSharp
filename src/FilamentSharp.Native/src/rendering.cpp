@@ -3,6 +3,7 @@
 // readback support.
 #include "bridge.h"
 #include "child.h"
+#include "types.h"
 #include "registry.h"
 
 #include <filament/Camera.h>
@@ -21,43 +22,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
-
-// ---- child wrapper types: definitions of the opaque ABI structs ---------
-// (global scope, like fs_engine in registry.h - these ARE the C types)
-
-struct fs_renderer {
-    filament::Renderer* renderer = nullptr;
-
-    // Pending synchronous readback state (one at a time per renderer).
-    uint8_t* pendingPixels = nullptr;
-    size_t pendingSize = 0;
-    bool pendingDone = false;
-
-    explicit fs_renderer(filament::Renderer* r) : renderer(r) {}
-
-    ~fs_renderer() { std::free(pendingPixels); }
-};
-
-struct fs_swap_chain {
-    filament::SwapChain* swapChain = nullptr;
-    explicit fs_swap_chain(filament::SwapChain* s) : swapChain(s) {}
-};
-
-struct fs_view {
-    filament::View* view = nullptr;
-    explicit fs_view(filament::View* v) : view(v) {}
-};
-
-struct fs_scene {
-    filament::Scene* scene = nullptr;
-    explicit fs_scene(filament::Scene* s) : scene(s) {}
-};
-
-struct fs_camera {
-    filament::Camera* camera = nullptr;
-    utils::Entity entity{};
-    explicit fs_camera(filament::Camera* c, utils::Entity e) : camera(c), entity(e) {}
-};
 
 namespace {
 

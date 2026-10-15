@@ -151,6 +151,58 @@ internal static unsafe partial class Native
     internal static partial int CameraGetProjectionMatrix(IntPtr engine, IntPtr camera,
         Span<float> matrix);
 
+    // --------------------------------------------------------- geometry buffers
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_vertex_buffer_create")]
+    internal static partial IntPtr VertexBufferCreate(IntPtr engine,
+        uint vertexCount, uint bufferCount,
+        ReadOnlySpan<VertexAttributeDescription> attributes, uint attributeCount);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_vertex_buffer_set_buffer")]
+    internal static partial int VertexBufferSetBuffer(IntPtr engine, IntPtr vertexBuffer,
+        uint bufferIndex, ReadOnlySpan<byte> data, nuint size);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_vertex_buffer_destroy")]
+    internal static partial int VertexBufferDestroy(IntPtr engine, IntPtr vertexBuffer);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_index_buffer_create")]
+    internal static partial IntPtr IndexBufferCreate(IntPtr engine,
+        uint indexCount, int indexType);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_index_buffer_set_buffer")]
+    internal static partial int IndexBufferSetBuffer(IntPtr engine, IntPtr indexBuffer,
+        ReadOnlySpan<byte> data, nuint size);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_index_buffer_destroy")]
+    internal static partial int IndexBufferDestroy(IntPtr engine, IntPtr indexBuffer);
+
+    // -------------------------------------------------------- scene entities
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_transform_set_matrix")]
+    internal static partial int TransformSetMatrix(IntPtr engine, uint entity,
+        ReadOnlySpan<float> columnMajor16);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_transform_get_world_matrix")]
+    internal static partial int TransformGetWorldMatrix(IntPtr engine, uint entity,
+        Span<float> outMatrix16);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_transform_set_parent")]
+    internal static partial int TransformSetParent(IntPtr engine, uint child, uint parent);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_scene_add_entity")]
+    internal static partial int SceneAddEntity(IntPtr engine, IntPtr scene, uint entity);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_scene_remove_entity")]
+    internal static partial int SceneRemoveEntity(IntPtr engine, IntPtr scene, uint entity);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_scene_has_entity")]
+    internal static partial int SceneHasEntity(IntPtr engine, IntPtr scene, uint entity,
+        out int has);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_scene_get_entity_count")]
+    internal static partial int SceneGetEntityCount(IntPtr engine, IntPtr scene,
+        out uint count);
+
     // ------------------------------------------------------------ string helpers
 
     /// <summary>

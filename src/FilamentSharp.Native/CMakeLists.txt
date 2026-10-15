@@ -64,6 +64,7 @@ add_library(FilamentSharp.Native SHARED
     src/version.cpp
     src/engine.cpp
     src/rendering.cpp
+    src/scene.cpp
 )
 set_target_properties(FilamentSharp.Native PROPERTIES
     OUTPUT_NAME "FilamentSharp.Native"

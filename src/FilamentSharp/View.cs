@@ -46,4 +46,57 @@ public sealed class Scene : FilamentObject
         : base(engine, handle)
     {
     }
+
+    /// <summary>Adds an entity to the scene.</summary>
+    /// <param name="entity">The entity to add.</param>
+    public void AddEntity(Entity entity)
+    {
+        ThrowIfDisposed();
+        if (!entity.IsValid)
+        {
+            throw new ArgumentException("A valid entity is required.", nameof(entity));
+        }
+        Native.SceneAddEntity(Engine.DangerousGetHandle(), RawHandle, entity.Id)
+            .Check(nameof(Scene.AddEntity));
+    }
+
+    /// <summary>Removes an entity from the scene.</summary>
+    /// <param name="entity">The entity to remove.</param>
+    public void RemoveEntity(Entity entity)
+    {
+        ThrowIfDisposed();
+        if (!entity.IsValid)
+        {
+            throw new ArgumentException("A valid entity is required.", nameof(entity));
+        }
+        Native.SceneRemoveEntity(Engine.DangerousGetHandle(), RawHandle, entity.Id)
+            .Check(nameof(Scene.RemoveEntity));
+    }
+
+    /// <summary>Gets a value indicating whether the scene contains the entity.</summary>
+    /// <param name="entity">The entity to look for.</param>
+    /// <returns><c>true</c> when the entity is in the scene.</returns>
+    public bool HasEntity(Entity entity)
+    {
+        ThrowIfDisposed();
+        if (!entity.IsValid)
+        {
+            throw new ArgumentException("A valid entity is required.", nameof(entity));
+        }
+        Native.SceneHasEntity(Engine.DangerousGetHandle(), RawHandle, entity.Id, out int has)
+            .Check(nameof(Scene.HasEntity));
+        return has != 0;
+    }
+
+    /// <summary>Gets the number of entities currently in the scene.</summary>
+    public uint EntityCount
+    {
+        get
+        {
+            ThrowIfDisposed();
+            Native.SceneGetEntityCount(Engine.DangerousGetHandle(), RawHandle, out uint count)
+                .Check(nameof(Scene.EntityCount));
+            return count;
+        }
+    }
 }

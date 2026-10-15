@@ -200,6 +200,118 @@ public sealed class Engine : IDisposable
             (engine, handle) => { _ = Native.CameraDestroy(engine, handle); }), entity);
     }
 
+    /// <summary>
+    /// Creates a vertex buffer with the given attribute declarations.
+    /// </summary>
+    /// <param name="vertexCount">Number of vertices.</param>
+    /// <param name="bufferCount">Number of separate data buffers.</param>
+    /// <param name="attributes">Attribute declarations (at least one).</param>
+    public VertexBuffer CreateVertexBuffer(uint vertexCount, uint bufferCount,
+        ReadOnlySpan<VertexAttributeDescription> attributes)
+    {
+        ThrowIfDisposed();
+        if (vertexCount == 0 || bufferCount == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(vertexCount),
+                "Vertex count and buffer count must be non-zero.");
+        }
+        if (attributes.IsEmpty)
+        {
+            throw new ArgumentException("At least one attribute is required.",
+                nameof(attributes));
+        }
+        var raw = Native.VertexBufferCreate(DangerousGetHandle(), vertexCount,
+            bufferCount, attributes, (uint)attributes.Length);
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateVertexBuffer");
+        }
+        return new VertexBuffer(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.VertexBufferDestroy(engine, handle); }));
+    }
+
+    /// <summary>Creates an index buffer.</summary>
+    /// <param name="indexCount">Number of indices.</param>
+    /// <param name="indexType">16-bit or 32-bit indices.</param>
+    public IndexBuffer CreateIndexBuffer(uint indexCount, IndexType indexType)
+    {
+        ThrowIfDisposed();
+        if (indexCount == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(indexCount),
+                "Index count must be non-zero.");
+        }
+        var raw = Native.IndexBufferCreate(DangerousGetHandle(), indexCount,
+            (int)indexType);
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateIndexBuffer");
+        }
+        return new IndexBuffer(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.IndexBufferDestroy(engine, handle); }));
+    }
+
+    /// <summary>
+    /// Sets an entity's local transform. The transform component is created
+    /// implicitly when the entity does not have one yet.
+    /// </summary>
+    /// <param name="entity">The entity to move.</param>
+    /// <param name="transform">The local transform (row-vector convention of
+    /// System.Numerics; translated to Filament's column-major layout).</param>
+    public void SetTransform(Entity entity, in System.Numerics.Matrix4x4 transform)
+    {
+        ThrowIfDisposed();
+        if (!entity.IsValid)
+        {
+            throw new ArgumentException("A valid entity is required.", nameof(entity));
+        }
+        Span<float> columnMajor = stackalloc float[16];
+        MatrixInterop.ToColumnMajor(transform, columnMajor);
+        Native.TransformSetMatrix(DangerousGetHandle(), entity.Id, columnMajor)
+            .Check(nameof(Engine.SetTransform));
+    }
+
+    /// <summary>Gets an entity's world (parent-composed) transform.</summary>
+    /// <param name="entity">The entity.</param>
+    /// <returns>The world transform.</returns>
+    /// <exception cref="FilamentSharpException">
+    /// The entity has no transform component (create one with
+    /// <see cref="SetTransform"/> first).
+    /// </exception>
+    public System.Numerics.Matrix4x4 GetWorldTransform(Entity entity)
+    {
+        ThrowIfDisposed();
+        if (!entity.IsValid)
+        {
+            throw new ArgumentException("A valid entity is required.", nameof(entity));
+        }
+        Span<float> columnMajor = stackalloc float[16];
+        Native.TransformGetWorldMatrix(DangerousGetHandle(), entity.Id, columnMajor)
+            .Check(nameof(Engine.GetWorldTransform));
+        return MatrixInterop.FromColumnMajor(columnMajor);
+    }
+
+    /// <summary>
+    /// Parents one entity under another. Pass <c>null</c> to detach the child
+    /// from the hierarchy.
+    /// </summary>
+    /// <param name="child">The child entity (must have a transform).</param>
+    /// <param name="parent">The parent entity, or <c>null</c> to detach.</param>
+    public void SetParent(Entity child, Entity? parent)
+    {
+        ThrowIfDisposed();
+        if (!child.IsValid)
+        {
+            throw new ArgumentException("A valid child entity is required.", nameof(child));
+        }
+        if (parent is { } p && !p.IsValid)
+        {
+            throw new ArgumentException("Parent entity is invalid.", nameof(parent));
+        }
+        Native.TransformSetParent(DangerousGetHandle(), child.Id,
+            parent?.Id ?? 0).Check(nameof(Engine.SetParent));
+    }
+
     internal IntPtr DangerousGetHandle()
     {
         ThrowIfDisposed();

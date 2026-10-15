@@ -309,6 +309,127 @@ FILAMENTSHARP_API fs_status fs_camera_look_at(fs_engine_t* engine,
 FILAMENTSHARP_API fs_status fs_camera_get_projection_matrix(fs_engine_t* engine,
         fs_camera_t* camera, float* out_matrix);
 
+/* ------------------------------------------------------------------ */
+/* Geometry buffers                                                    */
+/* ------------------------------------------------------------------ */
+
+/* Vertex attribute identifiers; values mirror filament::VertexAttribute
+   (uint8) at the pinned release. */
+enum fs_vertex_attribute {
+    FS_VERTEX_POSITION = 0,
+    FS_VERTEX_TANGENTS = 1,
+    FS_VERTEX_COLOR = 2,
+    FS_VERTEX_UV0 = 3,
+    FS_VERTEX_UV1 = 4,
+    FS_VERTEX_BONE_INDICES = 5,
+    FS_VERTEX_BONE_WEIGHTS = 6,
+    FS_VERTEX_CUSTOM0 = 8,
+    FS_VERTEX_CUSTOM1 = 9,
+    FS_VERTEX_CUSTOM2 = 10,
+    FS_VERTEX_CUSTOM3 = 11,
+    FS_VERTEX_CUSTOM4 = 12,
+    FS_VERTEX_CUSTOM5 = 13,
+    FS_VERTEX_CUSTOM6 = 14,
+    FS_VERTEX_CUSTOM7 = 15
+};
+typedef enum fs_vertex_attribute fs_vertex_attribute;
+
+/* Vertex attribute element types; values mirror
+   filament::backend::ElementType at the pinned release. */
+enum fs_element_type {
+    FS_ELEMENT_BYTE = 0, FS_ELEMENT_BYTE2 = 1, FS_ELEMENT_BYTE3 = 2,
+    FS_ELEMENT_BYTE4 = 3, FS_ELEMENT_UBYTE = 4, FS_ELEMENT_UBYTE2 = 5,
+    FS_ELEMENT_UBYTE3 = 6, FS_ELEMENT_UBYTE4 = 7, FS_ELEMENT_SHORT = 8,
+    FS_ELEMENT_SHORT2 = 9, FS_ELEMENT_SHORT3 = 10, FS_ELEMENT_SHORT4 = 11,
+    FS_ELEMENT_USHORT = 12, FS_ELEMENT_USHORT2 = 13, FS_ELEMENT_USHORT3 = 14,
+    FS_ELEMENT_USHORT4 = 15, FS_ELEMENT_INT = 16, FS_ELEMENT_UINT = 17,
+    FS_ELEMENT_FLOAT = 18, FS_ELEMENT_FLOAT2 = 19, FS_ELEMENT_FLOAT3 = 20,
+    FS_ELEMENT_FLOAT4 = 21, FS_ELEMENT_HALF = 22, FS_ELEMENT_HALF2 = 23,
+    FS_ELEMENT_HALF3 = 24, FS_ELEMENT_HALF4 = 25
+};
+typedef enum fs_element_type fs_element_type;
+
+/* Index buffer element type for fs_index_buffer_create. */
+enum fs_index_type {
+    FS_INDEX_USHORT = 0, /* 16-bit indices */
+    FS_INDEX_UINT = 1    /* 32-bit indices */
+};
+typedef enum fs_index_type fs_index_type;
+
+/* Attribute declaration passed to fs_vertex_buffer_create.
+   Layout contract: 20 bytes, natural alignment; verified by compile-time
+   checks in the native tests. Managed code passes an array of these. */
+typedef struct fs_vertex_attribute_desc {
+    int32_t attribute;    /* fs_vertex_attribute */
+    int32_t element_type; /* fs_element_type */
+    uint32_t buffer_index;
+    uint32_t byte_offset;
+    uint32_t byte_stride;
+} fs_vertex_attribute_desc;
+
+typedef struct fs_vertex_buffer fs_vertex_buffer_t;
+typedef struct fs_index_buffer fs_index_buffer_t;
+
+/* Creates a vertex buffer. attributes points to attribute_count attribute
+   declarations (at least one, POSITION is required by Filament for
+   renderables); buffer_count is the number of separate data buffers the
+   attributes may refer to. */
+FILAMENTSHARP_API fs_vertex_buffer_t* fs_vertex_buffer_create(
+        fs_engine_t* engine, uint32_t vertex_count, uint32_t buffer_count,
+        const fs_vertex_attribute_desc* attributes, uint32_t attribute_count);
+
+/* Uploads data for one of the buffer indices. The bridge copies the data;
+   the caller's memory is not retained after the call returns. */
+FILAMENTSHARP_API fs_status fs_vertex_buffer_set_buffer(fs_engine_t* engine,
+        fs_vertex_buffer_t* vertex_buffer, uint32_t buffer_index,
+        const uint8_t* data, uintptr_t size);
+
+FILAMENTSHARP_API fs_status fs_vertex_buffer_destroy(fs_engine_t* engine,
+        fs_vertex_buffer_t* vertex_buffer);
+
+/* Creates an index buffer with 16-bit or 32-bit indices. */
+FILAMENTSHARP_API fs_index_buffer_t* fs_index_buffer_create(fs_engine_t* engine,
+        uint32_t index_count, fs_index_type index_type);
+
+/* Uploads the index data (index_count * element_size bytes). The bridge
+   copies the data. */
+FILAMENTSHARP_API fs_status fs_index_buffer_set_buffer(fs_engine_t* engine,
+        fs_index_buffer_t* index_buffer, const uint8_t* data, uintptr_t size);
+
+FILAMENTSHARP_API fs_status fs_index_buffer_destroy(fs_engine_t* engine,
+        fs_index_buffer_t* index_buffer);
+
+/* ------------------------------------------------------------------ */
+/* Transforms and scene entities                                       */
+/* ------------------------------------------------------------------ */
+
+/* Sets an entity's local transform from 16 column-major floats
+   (Filament's memory layout). */
+FILAMENTSHARP_API fs_status fs_transform_set_matrix(fs_engine_t* engine,
+        fs_entity_id entity, const float* column_major16);
+
+/* Writes the entity's world transform (parent-composed) into out_matrix16. */
+FILAMENTSHARP_API fs_status fs_transform_get_world_matrix(fs_engine_t* engine,
+        fs_entity_id entity, float* out_matrix16);
+
+/* Parents child under parent (0 detaches the child from the hierarchy). */
+FILAMENTSHARP_API fs_status fs_transform_set_parent(fs_engine_t* engine,
+        fs_entity_id child, fs_entity_id parent);
+
+FILAMENTSHARP_API fs_status fs_scene_add_entity(fs_engine_t* engine,
+        fs_scene_t* scene, fs_entity_id entity);
+
+FILAMENTSHARP_API fs_status fs_scene_remove_entity(fs_engine_t* engine,
+        fs_scene_t* scene, fs_entity_id entity);
+
+/* out_has receives 1/0. */
+FILAMENTSHARP_API fs_status fs_scene_has_entity(fs_engine_t* engine,
+        fs_scene_t* scene, fs_entity_id entity, int32_t* out_has);
+
+/* out_count receives the number of entities currently in the scene. */
+FILAMENTSHARP_API fs_status fs_scene_get_entity_count(fs_engine_t* engine,
+        fs_scene_t* scene, uint32_t* out_count);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
