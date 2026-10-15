@@ -1,26 +1,30 @@
 # Deployment
 
-## Publishing the sample as a Native AOT executable
+## Publishing the samples as Native AOT executables
 
 ```bash
 # One-time: fetch the pinned Filament SDK and build the native bridge
 scripts/fetch-filament.sh
 scripts/build-native.sh
 
-# Publish (bundles bridge + assets, then smoke-runs)
+# Publish (bundles bridge + assets, then smoke-runs; WindowedRendering's
+# smoke is DISPLAY-gated and reports an honest skip without a display)
 PATH=":$PATH" scripts/publish-aot.sh
 ```
 
-Output: `external/aot-publish/`
+Output: `external/aot-publish/<SampleName>/` per sample:
 
 ```
-BasicRendering          # self-contained native ELF (no .NET runtime)
-external/native-install/lib/libFilamentSharp.Native.so
-external/native-install/materials/*.filamat
-assets/models/triangle.glb
+BasicRendering/                    WindowedRendering/
+  BasicRendering                     WindowedRendering   # self-contained
+  external/native-install/lib/        external/native-install/lib/       # bridge .so
+    libFilamentSharp.Native.so         external/native-install/materials/  # .filamat
+  external/native-install/materials/  assets/models/triangle.glb
+    *.filamat
+  assets/models/triangle.glb
 ```
 
-The executable is a stripped ~1.4 MB ELF binary whose only dynamic
+Each executable is a stripped ~1.4 MB ELF binary whose only dynamic
 dependencies are the system C library and libm. It carries no .NET runtime:
 the managed code was compiled ahead of time, which is why the binding is
 built without reflection or runtime code generation.
@@ -40,6 +44,11 @@ built without reflection or runtime code generation.
     `VK_ICD_FILENAMES` when that file exists.
   - **NOOP** — runs the full API with zeroed pixels; useful for smoke tests
     on machines without any GPU.
+- For **windowed rendering** additionally: a reachable X server (`DISPLAY`),
+  which the windowed sample requires and checks up front (Xvfb suffices —
+  see `docs/windowed-rendering.md`). Resize handling is the application's
+  job: destroy and recreate the swap chain on the same window handle when
+  the size changes.
 
 ## Using FilamentSharp in your own application
 

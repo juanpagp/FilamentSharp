@@ -39,6 +39,7 @@ bundle() {
 
 echo "publish-aot: publishing BasicRendering (cross-links a native executable; needs a C linker)"
 OUT_DIR="$OUT_BASE/BasicRendering"
+rm -rf "$OUT_DIR"   # idempotent re-runs (a stale layout must not break MSB3191)
 dotnet publish "$ROOT/samples/BasicRendering" \
     -c Release -r linux-x64 --self-contained true /p:PublishAot=true \
     -o "$OUT_DIR"
@@ -50,6 +51,7 @@ echo "publish-aot: done -> $OUT_DIR/BasicRendering"
 echo ""
 echo "publish-aot: publishing WindowedRendering"
 OUT_DIR="$OUT_BASE/WindowedRendering"
+rm -rf "$OUT_DIR"
 dotnet publish "$ROOT/samples/WindowedRendering" \
     -c Release -r linux-x64 --self-contained true /p:PublishAot=true \
     -o "$OUT_DIR"

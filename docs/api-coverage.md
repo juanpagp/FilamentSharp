@@ -18,7 +18,7 @@ headers at build time (native layout static-asserts) and at runtime
 | `Engine` lifecycle | `Engine.Create` / `TryCreate` / `Dispose` | All five backends selectable (`Backend.Default/OpenGL/Vulkan/Metal/WebGPU/Noop`); creation failure maps to `TryCreate == false` instead of an abort where possible |
 | `Engine` queries | `Engine.ActiveBackend` | Resolved backend after creation |
 | `Renderer` | `Renderer` | `BeginFrame` / `Render` / `EndFrame` frame loop; `SetClearOptions`; synchronous `ReadPixels` + `CompleteReadPixels` readback |
-| `SwapChain` | `SwapChain`, `SwapChainConfig` | Headless (offscreen) swap chains; `SwapChainConfig` flags mirror `backend::SwapChainFlags` |
+| `SwapChain` | `SwapChain`, `SwapChainConfig` | Headless (offscreen) **and** native-window swap chains (`Engine.CreateNativeSwapChain(XID)` — X11 on Linux; surface via XCB on Vulkan, GLX on OpenGL; resize = destroy + recreate on the same handle). `SwapChainConfig` flags mirror `backend::SwapChainFlags` |
 | `View` | `View` | Camera/scene wiring, viewport, background clear color; null scene accepted |
 | `Scene` | `Scene` | Add/remove/query entities, entity counts, membership |
 | `Camera` | `Camera` | Perspective/orthographic projection (all FOV directions), `LookAt`, view/projection matrix readback |

@@ -34,11 +34,12 @@ Filament's instance creation — run everything through the scripts.
 PATH=... scripts/run-managed-tests.sh
 ```
 
-45 xUnit facts covering the object model: lifecycle and idempotent
+48 xUnit facts covering the object model: lifecycle and idempotent
 disposal, argument validation, invalidation after engine disposal, the
 managed mirror of the `fs_renderable_desc` layout (byte-for-byte
 `Marshal.OffsetOf` pinning), transform math round-trips, material parameter
-introspection, glTF queries.
+introspection, glTF queries, and the native-window swap chain lifecycle
+(fake XID on NOOP: create → frame loop → dispose).
 
 ## 3. Managed integration tests (real native bridge)
 
@@ -55,6 +56,11 @@ and runs:
   - lit textured quad with a directional light (red-foreground /
     dark-background proportions),
   - glTF triangle loaded from `assets/models/triangle.glb`;
+- windowed rendering: `WindowedRenderingSampleRunsAndShutsDownCleanly` runs
+  the sample end-to-end when `DISPLAY` is set — a real X11 window, a
+  native-window swap chain, 5 frames, exit code 0, `completed cleanly`
+  asserted in the output; without a display it prints
+  `ENVIRONMENTAL SKIP: no DISPLAY` and passes.
 - every Vulkan test prints `ENVIRONMENTAL SKIP: ...` and passes when no
   ICD is available (the reason is asserted to be environmental, never a
   silent pass).
@@ -74,10 +80,30 @@ assertion comments.
 PATH=... scripts/publish-aot.sh
 ```
 
-Publishes `samples/BasicRendering` as a self-contained Native AOT
-executable, bundles the bridge and assets, and smoke-runs the full pipeline.
-Verified properties: stripped ELF, zero .NET runtime dependencies, pixel
-statistics identical to the JIT run.
+Publishes **both** samples as self-contained Native AOT executables, bundles
+the bridge and assets, and smoke-runs them. `BasicRendering` runs headlessly;
+`WindowedRendering` runs its smoke when `DISPLAY` is set and otherwise
+reports the skip honestly (build + link still verified). Verified
+properties: stripped ELF, zero .NET runtime dependencies, pixel statistics
+identical to the JIT run (BasicRendering), exit code 0 with `completed
+cleanly` in the output (WindowedRendering).
+
+## 5. Windowed rendering verification (reference environment)
+
+Real runs on Xvfb + lavapipe in the reference container (2026-10-15):
+
+- `vkCreateSwapchain: 128x96 ... swapchain-size=4` — a real Vulkan swap chain
+  created from the X11 window through XCB;
+- 5-frame run: `rendered 5 frame(s), 0 resize(s)` + exit 0;
+- 240-frame run at 800×600: ~63 fps average on llvmpipe, exit 0;
+- Native AOT build (1.4 MB stripped ELF) behaves identically to the JIT run;
+- without `DISPLAY`: clean error, exit 1; without any Vulkan ICD the engine
+  aborts inside Filament at the pinned release (documented upstream behavior;
+  `--backend noop` is the explicit escape hatch).
+
+Resize events require a window manager; the reference Xvfb has none, so the
+resize path is covered by code review + desktop runs, not by automation
+(see `docs/windowed-rendering.md` §8).
 
 ## Clean-checkout verification
 

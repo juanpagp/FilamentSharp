@@ -168,6 +168,16 @@ Key decisions:
     executed, output verified; deployment docs.
 11. **Docs finalization** — API coverage matrix, clean-checkout instructions,
     third-party notices, testing/deployment docs, CI.
+12. **Windowed (non-headless) rendering** — `fs_swap_chain_create_native`
+    (X11 XID → surface via XCB/GLX), managed `CreateNativeSwapChain`, the
+    `WindowedRendering` sample (Xlib interop, event pump, resize = swap-chain
+    recreate, keyboard quit, ordered teardown), `publish-aot.sh` covering both
+    samples with a DISPLAY-gated smoke, and a DISPLAY-gated integration test.
+    Verified for real on Xvfb + lavapipe (vkCreateSwapchain from the window,
+    240 frames @ 800×600 ≈ 63 fps, clean exit 0).
+13. **Continuation documentation** — `docs/windowed-rendering.md` (the
+    non-headless guide) and `docs/continuing-development.md` (environment
+    bootstrap, workflow, extension recipes, packaging contract).
 
 ## 7. Testing strategy
 
@@ -184,7 +194,11 @@ Key decisions:
   EGL is unavailable): real frames through the GL backend on a headless
   swap chain; content verified by reading back pixels after
   `Engine::flushAndWait()`.
-* **Native AOT test**: publish + run the example for `linux-x64`.
+* **Windowed integration test** (xunit): runs the `WindowedRendering` sample
+  end-to-end when `DISPLAY` is set (real X11 window + native-window swap
+  chain + finite frame budget + clean shutdown; exit code and output
+  asserted); self-skips with a reason when headless.
+* **Native AOT test**: publish + run the samples for `linux-x64`.
 * Reporting: every claim in `docs/testing.md` reflects a command that was
   actually executed; skips record their environmental cause.
 

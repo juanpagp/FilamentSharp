@@ -97,12 +97,25 @@ chains, so in this environment (and any headless CI) the working backends
 are:
 
 - **Vulkan** with a software ICD (llvmpipe). This is the primary path for
-  pixel-verified integration tests and the sample. `scripts/setup-headless-vulkan.sh`
+  pixel-verified integration tests and both samples. With a display
+  (real or Xvfb) it also drives **windowed** rendering: the
+  `fs_swap_chain_create_native` entry point hands the X11 XID to Filament,
+  which creates the `VkSurfaceKHR` through XCB
+  (`docs/windowed-rendering.md`).
+  `scripts/setup-headless-vulkan.sh`
   installs a user-local lavapipe ICD and `scripts/env.sh` exports
   `VK_ICD_FILENAMES`.
 - **NOOP**, which runs the full object model, frame loop, and readback
   plumbing with zeroed pixels — used by the unit suite for lifecycle,
-  validation, and layout coverage without a GPU.
+  validation, and layout coverage without a GPU. The NOOP platform layer
+  ignores the native window handle, which is what lets the windowed swap
+  chain be unit-tested headlessly with a fake XID.
+
+Known upstream limitation at the pinned release (v1.78.0): when *no* Vulkan
+ICD is visible, engine creation terminates the process from Filament's worker
+thread instead of returning an error — the bridge cannot convert that into
+`FS_ERROR`. The same applies to the GL backend without an X display. Both are
+documented at `fs_engine_create` in `abi.h`.
 
 ## Threading
 
