@@ -1,8 +1,23 @@
 # FilamentSharp Implementation Plan
 
-Status: **Active** — this document records the engineering plan that governs the
-incremental implementation of FilamentSharp. It is committed first and updated
-when the plan materially changes. The Git history follows the commit sequence
+Status: **Complete** — all planned milestones (§6) are implemented, tested,
+and committed. The final feature state is recorded in
+`docs/api-coverage.md`; the commit history follows §8. Highlights of what
+was verified along the way (each finding has a regression test):
+
+* Filament v1.78.0 terminates the process when a `Material` is destroyed
+  with live `MaterialInstance`s — including during engine shutdown. The
+  bridge's ownership registry destroys leaked children in reverse creation
+  order before `Engine::destroy` (LIFO proof in `tests/native/test_materials.cpp`).
+* Filament's `.filamat` parser reads past the buffer end for truncated
+  packages (a 4-byte payload segfaults). The bridge structurally pre-validates
+  the chunk chain and rejects such packages with an error.
+* gltfio's `ResourceLoader` destructor touches its registered texture
+  providers; the loader teardown order (ResourceLoader before decoder) is
+  load-bearing and pinned by `tests/native/test_gltf.cpp`.
+
+This document records the engineering plan that governed the incremental
+implementation of FilamentSharp. The Git history follows the commit sequence
 described at the bottom.
 
 ## 1. Goal

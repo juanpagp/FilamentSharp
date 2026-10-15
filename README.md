@@ -3,19 +3,28 @@
 Idiomatic, Native-AOT-compatible C# binding for [Google Filament](https://github.com/google/filament),
 the real-time physically based rendering engine.
 
-> Status: work in progress — see `docs/implementation-plan.md` for the plan and
-> `docs/api-coverage.md` for the currently wrapped API surface.
-
-## What is this?
-
 FilamentSharp lets an ordinary C# application create and drive a Filament
-rendering engine:
+rendering engine — engine, renderer, swap chains, scenes, cameras,
+geometry buffers, materials, textures, lights, renderables, and glTF 2.0
+assets — with pixel-verified headless rendering and a clean, ordered
+shutdown, publishable as a self-contained native executable.
 
 ```csharp
 using FilamentSharp;
 
-using var engine = Engine.Create(Backend.OpenGl);
-// ... renderer, swap chains, scenes, materials, glTF assets ...
+using var engine = Engine.Create(Backend.Vulkan);
+using var renderer = engine.CreateRenderer();
+using var swapChain = engine.CreateHeadlessSwapChain(128, 128);
+using var view = engine.CreateView();
+using var scene = engine.CreateScene();
+
+using var loader = engine.CreateGltfLoader();
+using var asset = loader.Load(File.ReadAllBytes("triangle.glb"));
+foreach (var entity in asset.GetEntities())
+{
+    scene.AddEntity(entity);
+}
+// ... camera, light, frame loop, readback, disposal ...
 ```
 
 The stack is:
@@ -23,28 +32,51 @@ The stack is:
 ```
 C# application
   └─ FilamentSharp (net10.0, source-generated P/Invoke, SafeHandle ownership)
-       └─ libFilamentSharp.Native.so (stable C ABI bridge, error model, ownership registry)
+       └─ libFilamentSharp.Native.so (stable C ABI bridge: 75 fs_* entry points,
+          error model, versioned ABI, ownership registry)
             └─ Google Filament v1.78.0 (official prebuilt release SDK, Apache-2.0)
-                 └─ OpenGL/EGL (or NOOP test backend)
+                 └─ Vulkan (software ICD works headless) or NOOP
 ```
+
+Design highlights:
+
+- **No reflection, no runtime codegen.** `[LibraryImport]` source-generated
+  P/Invoke only; trimming and AOT analyzers enabled; verified as a Native
+  AOT self-contained publish (stripped ~1.4 MB ELF, zero .NET deps).
+- **Stable C ABI.** `extern "C"`, opaque handles, fixed-width ints, status
+  codes + thread-local error text; no C++ exceptions cross the boundary;
+  ABI version negotiation; the header compiles as plain C.
+- **Sound ownership.** SafeHandle-based lifetimes; an ownership registry
+  that destroys leaked children in reverse creation order at engine death
+  (Filament requires material instances to die before materials, or the
+  process aborts — handled and tested).
+- **Real rendering, honestly tested.** Pixel-verified integration tests on
+  Vulkan (llvmpipe) with documented readback tolerances; NOOP backend for
+  GPU-less structural coverage; environmental skips print their reason.
 
 ## Quick start (Linux x64)
 
 ```bash
-# 0. Prerequisites: .NET SDK 10, CMake >= 3.20, Ninja, a C++17 compiler.
+# 0. Prerequisites: .NET SDK 10, CMake >= 3.20, Ninja, a C++17 compiler
+#    (clang + libc++ + lld; the Filament SDK is built with libc++).
 # 1. Fetch the pinned Filament release SDK (into external/, Git-ignored):
 ./scripts/fetch-filament.sh
-# 2. Build the native bridge (CMake + Ninja) and run native tests:
+# 2. Build the native bridge (CMake + Ninja) and run the native tests:
 ./scripts/build-native.sh
 # 3. Build everything managed and run the managed test suites:
 ./scripts/run-managed-tests.sh
 # 4. Publish + run the sample as a Native AOT executable:
 ./scripts/publish-aot.sh
-./artifacts/publish/linux-x64/BasicRendering
+./external/aot-publish/BasicRendering
+# (headless machine? ./scripts/setup-headless-vulkan.sh first)
 ```
 
-Full instructions: `docs/building.md` · architecture: `docs/architecture.md` ·
-API coverage: `docs/api-coverage.md` · deployment: `docs/deployment.md`.
+The sample renders two scenes offscreen — a procedural lit textured quad
+and a glTF triangle — verifies pixels, and writes PPM images.
+
+Documentation: `docs/building.md` · `docs/architecture.md` ·
+`docs/api-coverage.md` · `docs/testing.md` · `docs/deployment.md` ·
+`docs/third-party-notices.md` · plan and progress: `docs/implementation-plan.md`.
 
 ## License
 

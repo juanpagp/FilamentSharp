@@ -59,7 +59,7 @@ ICD; `gl` needs a running X server (the OpenGL backend uses GLX on Linux).
 ## 6. Publish the sample as a Native AOT executable
 
 ```bash
-./scripts/publish-aot.sh             # artifacts/publish/linux-x64/BasicRendering
+./scripts/publish-aot.sh             # external/aot-publish/BasicRendering
 ```
 
 ## Clean rebuild
