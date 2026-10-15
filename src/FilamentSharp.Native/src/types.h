@@ -25,6 +25,17 @@
 
 #include <cstdlib>
 #include <utils/Entity.h>
+#include <vector>
+
+// gltfio companion objects are held by pointer only; full definitions live
+// in gltf.cpp, which includes the real gltfio headers.
+namespace filament::gltfio {
+class AssetLoader;
+class MaterialProvider;
+class TextureProvider;
+class ResourceLoader;
+class FilamentAsset;
+}
 
 struct fs_renderer {
     filament::Renderer* renderer = nullptr;
@@ -95,6 +106,36 @@ struct fs_renderable {
     explicit fs_renderable(utils::Entity e) : entity(e) {}
 };
 
+// ---- glTF (full definitions here so the destroy dispatch below sees
+// complete types; the gltfio companion objects are torn down in gltf.cpp) --
+
+struct fs_gltf_asset; // the loader tracks its live assets
+
+struct fs_gltf_loader {
+    filament::gltfio::AssetLoader* loader = nullptr;
+    filament::gltfio::MaterialProvider* materials = nullptr;
+    filament::gltfio::TextureProvider* decoder = nullptr;
+    filament::gltfio::ResourceLoader* resources = nullptr;
+    // Assets created by this loader and still alive. The loader must
+    // outlive them (creation-order registration guarantees LIFO destruction
+    // at engine death); explicit loader destroy tears them down first.
+    std::vector<fs_gltf_asset*> assets;
+
+    fs_gltf_loader(filament::gltfio::AssetLoader* l,
+            filament::gltfio::MaterialProvider* m,
+            filament::gltfio::TextureProvider* d,
+            filament::gltfio::ResourceLoader* r)
+        : loader(l), materials(m), decoder(d), resources(r) {}
+};
+
+struct fs_gltf_asset {
+    filament::gltfio::FilamentAsset* asset = nullptr;
+    fs_gltf_loader* owner = nullptr;
+
+    fs_gltf_asset(filament::gltfio::FilamentAsset* a, fs_gltf_loader* o)
+        : asset(a), owner(o) {}
+};
+
 namespace filamentsharp {
 
 // Type-correct destruction of the Filament object owned by each wrapper.
@@ -138,6 +179,19 @@ inline void destroyFilamentObject(filament::Engine* engine, fs_light* w) {
 }
 inline void destroyFilamentObject(filament::Engine* engine, fs_renderable* w) {
     engine->getRenderableManager().destroy(w->entity);
+}
+
+// glTF teardown implementations live in gltf.cpp (they need gltfio headers
+// that are not included here); declared for the dispatch below.
+void destroyGltfLoaderObjects(fs_gltf_loader* wrapper);
+void destroyGltfAssetObjects(fs_gltf_asset* wrapper);
+
+inline void destroyFilamentObject(filament::Engine*, fs_gltf_loader* w) {
+    destroyGltfLoaderObjects(w);
+}
+
+inline void destroyFilamentObject(filament::Engine*, fs_gltf_asset* w) {
+    destroyGltfAssetObjects(w);
 }
 
 // Adapter matching the registry's destroyObject signature.

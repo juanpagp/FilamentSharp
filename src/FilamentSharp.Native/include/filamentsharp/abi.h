@@ -595,6 +595,74 @@ FILAMENTSHARP_API fs_renderable_t* fs_renderable_create(fs_engine_t* engine,
 FILAMENTSHARP_API fs_status fs_renderable_destroy(fs_engine_t* engine,
         fs_renderable_t* renderable);
 
+/* ------------------------------------------------------------------ */
+/* glTF asset loading (gltfio)                                         */
+/* ------------------------------------------------------------------ */
+
+typedef struct fs_gltf_loader fs_gltf_loader_t;
+typedef struct fs_gltf_asset fs_gltf_asset_t;
+
+/* Creates a glTF asset loader bound to the engine. Materials come from the
+   precompiled ubershader archive (no runtime shader generation); PNG/JPEG
+   textures embedded in GLB files are decoded with the bundled stb provider.
+   The loader owns a cache of Filament materials that is freed when the
+   loader is destroyed. */
+FILAMENTSHARP_API fs_gltf_loader_t* fs_gltf_loader_create(fs_engine_t* engine);
+
+/* Destroys a loader and every asset it still owns (assets must not outlive
+   their loader). As with other children, this is a no-op once the engine
+   has been destroyed. */
+FILAMENTSHARP_API fs_status fs_gltf_loader_destroy(fs_engine_t* engine,
+        fs_gltf_loader_t* loader);
+
+/* Parses glTF 2.0 content from memory (GLB with embedded buffers, or a
+   JSON glTF whose buffers are embedded as data URIs) and loads its
+   resources. The bridge performs no filesystem access: self-contained
+   files only. Returns null with the error text set for invalid content or
+   missing resource data. */
+FILAMENTSHARP_API fs_gltf_asset_t* fs_gltf_loader_load(fs_engine_t* engine,
+        fs_gltf_loader_t* loader, const uint8_t* content, uintptr_t size);
+
+/* Destroys an asset: removes its entities' components and frees its
+   Filament resources. Entities created by the asset become inert (they can
+   be destroyed with fs_entity_destroy). */
+FILAMENTSHARP_API fs_status fs_gltf_asset_destroy(fs_engine_t* engine,
+        fs_gltf_asset_t* asset);
+
+/* Writes the number of entities (transform hierarchy + renderables) into
+   out_count. */
+FILAMENTSHARP_API fs_status fs_gltf_asset_get_entity_count(fs_engine_t* engine,
+        fs_gltf_asset_t* asset, uint32_t* out_count);
+
+/* Writes up to capacity entity ids (creation order) into out_entities and
+   the number written into out_written. */
+FILAMENTSHARP_API fs_status fs_gltf_asset_get_entities(fs_engine_t* engine,
+        fs_gltf_asset_t* asset, fs_entity_id* out_entities, uint32_t capacity,
+        uint32_t* out_written);
+
+/* Writes the asset's scene-graph root entity into out_root. */
+FILAMENTSHARP_API fs_status fs_gltf_asset_get_root(fs_engine_t* engine,
+        fs_gltf_asset_t* asset, fs_entity_id* out_root);
+
+/* Writes the number of renderable entities into out_count. */
+FILAMENTSHARP_API fs_status fs_gltf_asset_get_renderable_count(fs_engine_t* engine,
+        fs_gltf_asset_t* asset, uint32_t* out_count);
+
+/* Writes the asset's axis-aligned bounding box into out_min/out_max
+   (3 floats each, XYZ). */
+FILAMENTSHARP_API fs_status fs_gltf_asset_get_bounding_box(fs_engine_t* engine,
+        fs_gltf_asset_t* asset, float* out_min, float* out_max);
+
+/* Writes the number of animations into out_count. */
+FILAMENTSHARP_API fs_status fs_gltf_asset_get_animation_count(fs_engine_t* engine,
+        fs_gltf_asset_t* asset, uint32_t* out_count);
+
+/* Applies animation `animation_index` at `time_seconds` and updates bone
+   matrices. Follows gltfio's Animator contract (values outside the
+   animation duration are clamped/looped by gltfio). */
+FILAMENTSHARP_API fs_status fs_gltf_asset_apply_animation(fs_engine_t* engine,
+        fs_gltf_asset_t* asset, uint32_t animation_index, double time_seconds);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

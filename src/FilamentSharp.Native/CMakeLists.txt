@@ -39,7 +39,9 @@ set(FS_SDK_LIB "${FILAMENT_SDK_DIR}/lib/x86_64")
 add_library(filament_sdk INTERFACE)
 target_include_directories(filament_sdk INTERFACE "${FILAMENT_SDK_DIR}/include")
 foreach(_lib IN ITEMS filament backend bluegl bluevk webgpu_dawn filabridge
-                        filaflat smol-v utils geometry shaders ibl zstd)
+                        filaflat smol-v utils geometry shaders ibl zstd
+                        gltfio_core dracodec uberzlib uberarchive stb
+                        meshoptimizer)
     if(EXISTS "${FS_SDK_LIB}/lib${_lib}.a")
         target_link_libraries(filament_sdk INTERFACE "${FS_SDK_LIB}/lib${_lib}.a")
     else()
@@ -66,6 +68,7 @@ add_library(FilamentSharp.Native SHARED
     src/rendering.cpp
     src/scene.cpp
     src/materials.cpp
+    src/gltf.cpp
 )
 set_target_properties(FilamentSharp.Native PROPERTIES
     OUTPUT_NAME "FilamentSharp.Native"

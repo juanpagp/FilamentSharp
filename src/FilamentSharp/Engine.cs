@@ -357,6 +357,23 @@ public sealed class Engine : IDisposable
             (engine, handle) => { _ = Native.TextureDestroy(engine, handle); }));
     }
 
+    /// <summary>
+    /// Creates a glTF asset loader. Materials come from Filament's
+    /// precompiled ubershader archive (no runtime shader generation).
+    /// </summary>
+    /// <returns>The new loader.</returns>
+    public GltfLoader CreateGltfLoader()
+    {
+        ThrowIfDisposed();
+        var raw = Native.GltfLoaderCreate(DangerousGetHandle());
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateGltfLoader");
+        }
+        return new GltfLoader(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.GltfLoaderDestroy(engine, handle); }));
+    }
+
     internal IntPtr DangerousGetHandle()
     {
         ThrowIfDisposed();

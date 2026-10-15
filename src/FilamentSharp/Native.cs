@@ -278,6 +278,48 @@ internal static unsafe partial class Native
     [LibraryImport(LibraryName, EntryPoint = "fs_renderable_destroy")]
     internal static partial int RenderableDestroy(IntPtr engine, IntPtr renderable);
 
+    // ----------------------------------------------------------------- gltf
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_loader_create")]
+    internal static partial IntPtr GltfLoaderCreate(IntPtr engine);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_loader_destroy")]
+    internal static partial int GltfLoaderDestroy(IntPtr engine, IntPtr loader);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_loader_load")]
+    internal static partial IntPtr GltfLoaderLoad(IntPtr engine, IntPtr loader,
+        ReadOnlySpan<byte> content, nuint size);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_asset_destroy")]
+    internal static partial int GltfAssetDestroy(IntPtr engine, IntPtr asset);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_asset_get_entity_count")]
+    internal static partial int GltfAssetGetEntityCount(IntPtr engine, IntPtr asset,
+        out uint count);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_asset_get_entities")]
+    internal static partial int GltfAssetGetEntities(IntPtr engine, IntPtr asset,
+        uint[] entities, uint capacity, out uint written);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_asset_get_root")]
+    internal static partial int GltfAssetGetRoot(IntPtr engine, IntPtr asset, out uint root);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_asset_get_renderable_count")]
+    internal static partial int GltfAssetGetRenderableCount(IntPtr engine, IntPtr asset,
+        out uint count);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_asset_get_bounding_box")]
+    internal static unsafe partial int GltfAssetGetBoundingBox(IntPtr engine, IntPtr asset,
+        float* outMin, float* outMax);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_asset_get_animation_count")]
+    internal static partial int GltfAssetGetAnimationCount(IntPtr engine, IntPtr asset,
+        out uint count);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_gltf_asset_apply_animation")]
+    internal static partial int GltfAssetApplyAnimation(IntPtr engine, IntPtr asset,
+        uint animationIndex, double timeSeconds);
+
     // ------------------------------------------------------------ string helpers
 
     /// <summary>

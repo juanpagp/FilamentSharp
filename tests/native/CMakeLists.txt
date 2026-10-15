@@ -77,6 +77,16 @@ add_dependencies(test_materials filament_materials)
 
 add_test(NAME materials COMMAND test_materials)
 
+# ----------------------------------------------------------------- test_gltf
+add_executable(test_gltf test_gltf.cpp)
+target_link_libraries(test_gltf PRIVATE FilamentSharp.Native)
+target_compile_features(test_gltf PRIVATE cxx_std_17)
+target_compile_options(test_gltf PRIVATE -stdlib=libc++ -Wall -Wextra)
+target_compile_definitions(test_gltf PRIVATE
+    FS_GLTF_MODEL="${CMAKE_CURRENT_SOURCE_DIR}/../../assets/models/triangle.glb")
+
+add_test(NAME gltf COMMAND test_gltf)
+
 # ------------------------------------------------------------- bridge_smoke
 add_executable(bridge_smoke bridge_smoke.cpp)
 target_link_libraries(bridge_smoke PRIVATE FilamentSharp.Native)
@@ -88,5 +98,5 @@ add_test(NAME bridge_smoke COMMAND bridge_smoke)
 # Every test that links the bridge needs to find the shared library; the dlopen
 # test needs it loadable by soname. Both are satisfied by prepending the
 # library's own directory to LD_LIBRARY_PATH.
-set_tests_properties(abi_c foundation bridge_smoke engine rendering scene materials PROPERTIES
+set_tests_properties(abi_c foundation bridge_smoke engine rendering scene materials gltf PROPERTIES
     ENVIRONMENT "LD_LIBRARY_PATH=$<TARGET_FILE_DIR:FilamentSharp.Native>:$ENV{LD_LIBRARY_PATH}")
