@@ -153,7 +153,8 @@ FILAMENTSHARP_API fs_vertex_buffer_t* fs_vertex_buffer_create(
         }
         auto* wrapper = new fs_vertex_buffer(vertexBuffer);
         filamentsharp::Registry::instance().addChildLocked(
-                engine, wrapper, &filamentsharp::disposeChild<fs_vertex_buffer>);
+                engine, wrapper, &filamentsharp::disposeChild<fs_vertex_buffer>,
+                &filamentsharp::destroyChildObject<fs_vertex_buffer>);
         return wrapper;
     FS_END_VALUE(nullptr)
 }
@@ -204,7 +205,7 @@ FILAMENTSHARP_API fs_status fs_vertex_buffer_destroy(fs_engine_t* engineHandle,
             return FS_ERROR_INVALID_ARG;
         }
         auto* wrapper = static_cast<fs_vertex_buffer*>(vertexBufferHandle);
-        engine->engine->destroy(wrapper->vertexBuffer);
+        filamentsharp::destroyFilamentObject(engine->engine, wrapper);
         filamentsharp::Registry::instance().removeChildLocked(vertexBufferHandle);
         delete wrapper;
         return FS_OK;
@@ -240,7 +241,8 @@ FILAMENTSHARP_API fs_index_buffer_t* fs_index_buffer_create(fs_engine_t* engineH
         }
         auto* wrapper = new fs_index_buffer(indexBuffer);
         filamentsharp::Registry::instance().addChildLocked(
-                engine, wrapper, &filamentsharp::disposeChild<fs_index_buffer>);
+                engine, wrapper, &filamentsharp::disposeChild<fs_index_buffer>,
+                &filamentsharp::destroyChildObject<fs_index_buffer>);
         return wrapper;
     FS_END_VALUE(nullptr)
 }
@@ -288,7 +290,7 @@ FILAMENTSHARP_API fs_status fs_index_buffer_destroy(fs_engine_t* engineHandle,
             return FS_ERROR_INVALID_ARG;
         }
         auto* wrapper = static_cast<fs_index_buffer*>(indexBufferHandle);
-        engine->engine->destroy(wrapper->indexBuffer);
+        filamentsharp::destroyFilamentObject(engine->engine, wrapper);
         filamentsharp::Registry::instance().removeChildLocked(indexBufferHandle);
         delete wrapper;
         return FS_OK;

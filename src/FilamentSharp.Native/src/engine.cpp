@@ -76,7 +76,7 @@ FILAMENTSHARP_API void fs_engine_destroy(fs_engine_t* engine) {
 
         fs_engine* handle = nullptr;
         filament::Engine* doomed = nullptr;
-        std::vector<void*> children;
+        std::vector<filamentsharp::Registry::ChildRef> children;
         {
             std::lock_guard<std::mutex> lock(Registry::mutex());
             handle = Registry::instance().engineLocked(engine);
@@ -87,30 +87,54 @@ FILAMENTSHARP_API void fs_engine_destroy(fs_engine_t* engine) {
             // Children become invalid the moment `alive` flips. Their
             // registrations are kept until Filament teardown completes
             // (below), because wrappers may own memory Filament is still
-            // using (e.g. a pending readback buffer).
+            // using (e.g. a pending readback buffer). The children are
+            // collected in CREATION order for the LIFO pass below.
             Registry::instance().collectChildrenLocked(handle, children);
             doomed = handle->engine;
             handle->engine = nullptr;
             // The wrapper itself is retained (documented in abi.h).
         }
 
-        // Destroy outside the registry mutex: this is the expensive,
-        // thread-safe teardown. Nothing can reach `doomed` through the
-        // bridge anymore (alive == false guards every child path). When
+        // Destroy the Filament objects owned by still-live children in
+        // REVERSE creation order (LIFO), before the engine itself. This is
+        // required, not an optimization: FMaterial's destructor terminates
+        // the process when material instances outlive their material, and
+        // Filament's own engine shutdown hits that destructor for leftover
+        // materials (verified against the pinned v1.78.0 release). LIFO
+        // guarantees instances die before materials because an instance can
+        // only be created after its material. Each destroy is isolated: a
+        // failure is recorded and teardown continues, so Engine::destroy
+        // below always runs.
+        for (auto it = children.rbegin(); it != children.rend(); ++it) {
+            if (it->destroyObject == nullptr) {
+                continue;
+            }
+            try {
+                it->destroyObject(doomed, it->child);
+            } catch (const std::exception& e) {
+                ::filamentsharp::setLastError(e.what());
+            } catch (...) {
+                ::filamentsharp::setLastError("unknown error destroying child object");
+            }
+        }
+
+        // Destroy the engine outside the registry mutex: this is the
+        // expensive, thread-safe teardown. Nothing can reach `doomed` through
+        // the bridge anymore (alive == false guards every child path). When
         // Engine::destroy returns, all Filament work (including pending
-        // readback callbacks) has completed, so wrapper-owned buffers are
-        // no longer referenced.
+        // readback callbacks) has completed, so wrapper-owned buffers are no
+        // longer referenced.
         if (doomed != nullptr) {
             filament::Engine::destroy(&doomed);
         }
 
         // Now the child wrappers themselves can be freed safely. A racing
-        // child destroy between the two phases observed a dead engine and
+        // child destroy between the phases above observed a dead engine and
         // returned as a no-op without touching the wrapper.
         {
             std::lock_guard<std::mutex> lock(Registry::mutex());
-            for (void* child : children) {
-                Registry::instance().disposeChildLocked(child);
+            for (const auto& ref : children) {
+                Registry::instance().disposeChildLocked(ref.child);
             }
         }
     FS_END

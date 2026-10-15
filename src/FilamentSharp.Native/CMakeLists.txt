@@ -65,6 +65,7 @@ add_library(FilamentSharp.Native SHARED
     src/engine.cpp
     src/rendering.cpp
     src/scene.cpp
+    src/materials.cpp
 )
 set_target_properties(FilamentSharp.Native PROPERTIES
     OUTPUT_NAME "FilamentSharp.Native"
@@ -128,6 +129,31 @@ target_link_options(FilamentSharp.Native PRIVATE
     -Wl,-z,relro -Wl,-z,now)
 
 target_link_libraries(FilamentSharp.Native PRIVATE filament_sdk)
+
+
+# --- Offline material compilation (matc from the pinned SDK)
+set(FS_MATERIALS_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../assets/materials")
+set(FS_MATERIALS_OUT_DIR "${CMAKE_BINARY_DIR}/materials")
+file(MAKE_DIRECTORY "${FS_MATERIALS_OUT_DIR}")
+
+set(FS_FILAMAT_FILES "")
+foreach(mat_name IN ITEMS unlit_color lit_color lit_textured)
+    set(src "${FS_MATERIALS_SRC_DIR}/${mat_name}.mat")
+    set(out "${FS_MATERIALS_OUT_DIR}/${mat_name}.filamat")
+    add_custom_command(
+        OUTPUT "${out}"
+        COMMAND "${FILAMENT_SDK_DIR}/bin/matc" -a all -p desktop
+                -o "${out}" "${src}"
+        DEPENDS "${src}"
+        COMMENT "matc: compiling ${mat_name}.mat"
+        VERBATIM)
+    list(APPEND FS_FILAMAT_FILES "${out}")
+endforeach()
+
+add_custom_target(filament_materials ALL DEPENDS ${FS_FILAMAT_FILES})
+add_dependencies(FilamentSharp.Native filament_materials)
+
+install(FILES ${FS_FILAMAT_FILES} DESTINATION materials)
 
 # --- Install rules
 include(GNUInstallDirs)

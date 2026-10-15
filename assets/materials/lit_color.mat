@@ -1,0 +1,24 @@
+//
+// Lit, opaque material with linear color, roughness, and metallic parameters.
+//
+material {
+    name : lit_color,
+    parameters : [
+        { type : float3, name : baseColor },
+        { type : float,  name : roughness },
+        { type : float,  name : metallic }
+    ],
+    requires : [ position ],
+    shadingModel : lit,
+    blending : opaque,
+    reflectance : 0.35
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = vec4(materialParams.baseColor, 1.0);
+        material.roughness = materialParams.roughness;
+        material.metallic = materialParams.metallic;
+    }
+}

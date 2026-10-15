@@ -203,6 +203,81 @@ internal static unsafe partial class Native
     internal static partial int SceneGetEntityCount(IntPtr engine, IntPtr scene,
         out uint count);
 
+    // ---------------------------------------------- materials/textures/lights
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_create")]
+    internal static partial IntPtr MaterialCreate(IntPtr engine,
+        ReadOnlySpan<byte> package, nuint packageSize);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_destroy")]
+    internal static partial int MaterialDestroy(IntPtr engine, IntPtr material);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_get_parameter_count")]
+    internal static partial int MaterialGetParameterCount(IntPtr engine, IntPtr material,
+        out uint count);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_get_parameter_names")]
+    internal static partial int MaterialGetParameterNames(IntPtr engine, IntPtr material,
+        IntPtr[] names, uint capacity, out uint written);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_create_instance")]
+    internal static partial IntPtr MaterialCreateInstance(IntPtr engine, IntPtr material);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_instance_destroy")]
+    internal static partial int MaterialInstanceDestroy(IntPtr engine, IntPtr instance);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_instance_set_float", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int MaterialInstanceSetFloat(IntPtr engine, IntPtr instance,
+        string name, float value);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_instance_set_float3", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int MaterialInstanceSetFloat3(IntPtr engine, IntPtr instance,
+        string name, float x, float y, float z);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_instance_set_float4", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int MaterialInstanceSetFloat4(IntPtr engine, IntPtr instance,
+        string name, float x, float y, float z, float w);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_instance_set_bool", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int MaterialInstanceSetBool(IntPtr engine, IntPtr instance,
+        string name, int value);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_instance_set_int", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int MaterialInstanceSetInt(IntPtr engine, IntPtr instance,
+        string name, int value);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_material_instance_set_texture", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial int MaterialInstanceSetTexture(IntPtr engine, IntPtr instance,
+        string name, IntPtr texture, int minFilter, int magFilter, int wrapS, int wrapT);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_texture_create_2d")]
+    internal static partial IntPtr TextureCreate2d(IntPtr engine, uint width, uint height,
+        uint levels, int format);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_texture_set_image_rgba8")]
+    internal static partial int TextureSetImageRgba8(IntPtr engine, IntPtr texture,
+        uint level, uint width, uint height, ReadOnlySpan<byte> rgba, nuint size);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_texture_destroy")]
+    internal static partial int TextureDestroy(IntPtr engine, IntPtr texture);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_light_create")]
+    internal static partial IntPtr LightCreate(IntPtr engine, uint entity, int type,
+        float r, float g, float b, float intensity,
+        int hasDirection, double dirX, double dirY, double dirZ,
+        int hasPosition, double posX, double posY, double posZ,
+        float falloff, int castShadows);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_light_destroy")]
+    internal static partial int LightDestroy(IntPtr engine, IntPtr light);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_renderable_create")]
+    internal static partial IntPtr RenderableCreate(IntPtr engine,
+        in NativeRenderableDesc desc);
+
+    [LibraryImport(LibraryName, EntryPoint = "fs_renderable_destroy")]
+    internal static partial int RenderableDestroy(IntPtr engine, IntPtr renderable);
+
     // ------------------------------------------------------------ string helpers
 
     /// <summary>

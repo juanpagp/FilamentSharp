@@ -1,0 +1,25 @@
+//
+// Lit, textured material: base color from an sRGB sampler2d, roughness and
+// metallic from scalar parameters.
+//
+material {
+    name : lit_textured,
+    parameters : [
+        { type : sampler2d, name : baseColorMap },
+        { type : float,  name : roughness },
+        { type : float,  name : metallic }
+    ],
+    requires : [ position, uv0 ],
+    shadingModel : lit,
+    blending : opaque,
+    reflectance : 0.35
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = texture(materialParams_baseColorMap, getUV0());
+        material.roughness = materialParams.roughness;
+        material.metallic = materialParams.metallic;
+    }
+}

@@ -139,6 +139,11 @@ FILAMENTSHARP_API fs_engine_t* fs_engine_create(fs_backend backend);
    invalidated: destroying a child becomes a documented no-op (FS_OK), and
    any other child operation returns FS_ERROR_INVALIDATED instead of
    touching freed memory.
+   - Children still alive at engine destruction are torn down safely: their
+   Filament objects are destroyed in REVERSE creation order (dependents
+   before providers - e.g. material instances before materials, which
+   Filament requires or its material destructor aborts the process), then
+   the engine itself is destroyed. Wrappers are freed last.
    - The engine wrapper itself is retained internally (not freed) so late
    child releases can detect invalidation safely; only the underlying
    Filament engine and its resources are destroyed.
@@ -429,6 +434,166 @@ FILAMENTSHARP_API fs_status fs_scene_has_entity(fs_engine_t* engine,
 /* out_count receives the number of entities currently in the scene. */
 FILAMENTSHARP_API fs_status fs_scene_get_entity_count(fs_engine_t* engine,
         fs_scene_t* scene, uint32_t* out_count);
+
+/* ------------------------------------------------------------------ */
+/* Materials, textures, lights, renderables                            */
+/* ------------------------------------------------------------------ */
+
+typedef struct fs_material fs_material_t;
+typedef struct fs_material_instance fs_material_instance_t;
+typedef struct fs_texture fs_texture_t;
+typedef struct fs_light fs_light_t;
+typedef struct fs_renderable fs_renderable_t;
+
+/* Texture internal formats (subset; values mirror
+   filament::Texture::InternalFormat at the pinned release). */
+enum fs_texture_internal_format {
+    FS_TEXTURE_RGBA8 = 30,
+    FS_TEXTURE_SRGB8_A8 = 31
+};
+typedef enum fs_texture_internal_format fs_texture_internal_format;
+
+/* Sampler filters/wrap (values mirror backend::SamplerMinFilter /
+ * SamplerMagFilter / SamplerWrapMode). */
+enum fs_min_filter {
+    FS_MIN_NEAREST = 0, FS_MIN_LINEAR = 1, FS_MIN_NEAREST_MIPMAP_NEAREST = 2,
+    FS_MIN_LINEAR_MIPMAP_NEAREST = 3, FS_MIN_NEAREST_MIPMAP_LINEAR = 4,
+    FS_MIN_LINEAR_MIPMAP_LINEAR = 5
+};
+enum fs_mag_filter { FS_MAG_NEAREST = 0, FS_MAG_LINEAR = 1 };
+enum fs_wrap_mode {
+    FS_WRAP_CLAMP_TO_EDGE = 0, FS_WRAP_REPEAT = 1, FS_WRAP_MIRRORED_REPEAT = 2
+};
+
+/* Light types (values mirror filament::LightManager::Type). */
+enum fs_light_type {
+    FS_LIGHT_SUN = 0, FS_LIGHT_DIRECTIONAL = 1, FS_LIGHT_POINT = 2,
+    FS_LIGHT_FOCUSED_SPOT = 3, FS_LIGHT_SPOT = 4
+};
+typedef enum fs_light_type fs_light_type;
+
+/* ---- Material ---------------------------------------------------------- */
+
+/* Creates a material from a matc-compiled package (.filamat bytes).
+   The bridge structurally pre-validates the package (chunk chain must
+   consume exactly the whole payload, first chunk MAT_VERS): truncated or
+   corrupt packages are rejected with an error, because Filament's own
+   parser can read past the buffer end for such inputs. Well-formed
+   packages that Filament still rejects (unsupported version, incompatible
+   shader payload) surface as an error with Filament's diagnostic text. */
+FILAMENTSHARP_API fs_material_t* fs_material_create(fs_engine_t* engine,
+        const uint8_t* package_data, uintptr_t package_size);
+
+/* Destroys a material. Returns FS_ERROR (without destroying anything) when
+   material instances created from this material are still alive: Filament
+   refuses the destruction (precondition) and the bridge maps that to an
+   error return. Destroy instances first. */
+FILAMENTSHARP_API fs_status fs_material_destroy(fs_engine_t* engine,
+        fs_material_t* material);
+
+/* Writes the number of declared material parameters into out_count. */
+FILAMENTSHARP_API fs_status fs_material_get_parameter_count(fs_engine_t* engine,
+        fs_material_t* material, uint32_t* out_count);
+
+/* Writes up to capacity pointers to bridge-owned NUL-terminated parameter
+   names into out_names. The pointers stay valid for the lifetime of the
+   material. Sets *out_written to the number of written pointers. */
+FILAMENTSHARP_API fs_status fs_material_get_parameter_names(fs_engine_t* engine,
+        fs_material_t* material, const char** out_names, uint32_t capacity,
+        uint32_t* out_written);
+
+/* Creates a material instance (a specialization with its own parameter
+   values) from a material. */
+FILAMENTSHARP_API fs_material_instance_t* fs_material_create_instance(
+        fs_engine_t* engine, fs_material_t* material);
+
+FILAMENTSHARP_API fs_status fs_material_instance_destroy(fs_engine_t* engine,
+        fs_material_instance_t* instance);
+
+/* Typed parameter setters. name is a NUL-terminated UTF-8 parameter name.
+   Setting a parameter the material does not declare returns FS_ERROR (the
+   pinned Filament release raises a precondition panic for unknown uniform
+   names, which the bridge's error model converts into a status + message
+   instead of letting the exception cross the ABI). */
+FILAMENTSHARP_API fs_status fs_material_instance_set_float(fs_engine_t* engine,
+        fs_material_instance_t* instance, const char* name, float value);
+FILAMENTSHARP_API fs_status fs_material_instance_set_float3(fs_engine_t* engine,
+        fs_material_instance_t* instance, const char* name,
+        float x, float y, float z);
+FILAMENTSHARP_API fs_status fs_material_instance_set_float4(fs_engine_t* engine,
+        fs_material_instance_t* instance, const char* name,
+        float x, float y, float z, float w);
+FILAMENTSHARP_API fs_status fs_material_instance_set_bool(fs_engine_t* engine,
+        fs_material_instance_t* instance, const char* name, int32_t value);
+FILAMENTSHARP_API fs_status fs_material_instance_set_int(fs_engine_t* engine,
+        fs_material_instance_t* instance, const char* name, int32_t value);
+
+/* Binds a texture parameter with the given sampler configuration. */
+FILAMENTSHARP_API fs_status fs_material_instance_set_texture(fs_engine_t* engine,
+        fs_material_instance_t* instance, const char* name,
+        fs_texture_t* texture, int32_t min_filter, int32_t mag_filter,
+        int32_t wrap_s, int32_t wrap_t);
+
+/* ---- Texture ----------------------------------------------------------- */
+
+/* Creates a 2D texture. levels is the number of mip levels (1 for a single
+   image without mipmaps). */
+FILAMENTSHARP_API fs_texture_t* fs_texture_create_2d(fs_engine_t* engine,
+        uint32_t width, uint32_t height, uint32_t levels,
+        fs_texture_internal_format format);
+
+/* Uploads one mip level of RGBA8 data (width*height*4 bytes; expected to
+   match the level size). The bridge copies the data. */
+FILAMENTSHARP_API fs_status fs_texture_set_image_rgba8(fs_engine_t* engine,
+        fs_texture_t* texture, uint32_t level, uint32_t width, uint32_t height,
+        const uint8_t* rgba, uintptr_t size);
+
+FILAMENTSHARP_API fs_status fs_texture_destroy(fs_engine_t* engine,
+        fs_texture_t* texture);
+
+/* ---- Light -------------------------------------------------------------- */
+
+/* Creates a light component on an entity.
+   has_direction/dir_*: required for SUN/DIRECTIONAL/SPOT types;
+   has_position/pos_*: required for POINT/SPOT types;
+   falloff > 0 enables a finite light radius;
+   color is linear RGB; intensity is in lux (SUN/DIRECTIONAL) or candela
+   (POINT/SPOT); cast_shadows is 0/1. */
+FILAMENTSHARP_API fs_light_t* fs_light_create(fs_engine_t* engine,
+        fs_entity_id entity, fs_light_type type,
+        float r, float g, float b, float intensity,
+        int32_t has_direction, double dir_x, double dir_y, double dir_z,
+        int32_t has_position, double pos_x, double pos_y, double pos_z,
+        float falloff, int32_t cast_shadows);
+
+FILAMENTSHARP_API fs_status fs_light_destroy(fs_engine_t* engine,
+        fs_light_t* light);
+
+/* ---- Renderable --------------------------------------------------------- */
+
+/* Renderable creation description (single primitive; multi-primitive
+   renderables are not exposed by this ABI revision). Layout is verified by
+   compile-time checks in the native tests. */
+typedef struct fs_renderable_desc {
+    fs_entity_id entity;
+    fs_vertex_buffer_t* vertices;
+    fs_index_buffer_t* indices;
+    uint32_t primitive_offset; /* in indices */
+    uint32_t primitive_count;
+    float bounds_min[3];
+    float bounds_max[3];
+    fs_material_instance_t* material;
+    int32_t culling;        /* 0/1 */
+    int32_t cast_shadows;   /* 0/1 */
+    int32_t receive_shadows;/* 0/1 */
+} fs_renderable_desc;
+
+/* Creates a renderable component on desc->entity. */
+FILAMENTSHARP_API fs_renderable_t* fs_renderable_create(fs_engine_t* engine,
+        const fs_renderable_desc* desc);
+
+FILAMENTSHARP_API fs_status fs_renderable_destroy(fs_engine_t* engine,
+        fs_renderable_t* renderable);
 
 #ifdef __cplusplus
 } /* extern "C" */

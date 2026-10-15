@@ -312,6 +312,51 @@ public sealed class Engine : IDisposable
             parent?.Id ?? 0).Check(nameof(Engine.SetParent));
     }
 
+    /// <summary>
+    /// Loads a matc-compiled material package (.filamat bytes) into the engine.
+    /// </summary>
+    /// <param name="package">The .filamat package bytes.</param>
+    /// <returns>The loaded material.</returns>
+    public Material CreateMaterial(ReadOnlySpan<byte> package)
+    {
+        ThrowIfDisposed();
+        if (package.IsEmpty)
+        {
+            throw new ArgumentException("Material package must not be empty.", nameof(package));
+        }
+        var raw = Native.MaterialCreate(DangerousGetHandle(), package, (nuint)package.Length);
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateMaterial");
+        }
+        return new Material(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.MaterialDestroy(engine, handle); }));
+    }
+
+    /// <summary>Creates a 2D texture.</summary>
+    /// <param name="width">Width in pixels.</param>
+    /// <param name="height">Height in pixels.</param>
+    /// <param name="levels">Number of mip levels (1 for no mipmaps).</param>
+    /// <param name="format">Internal format.</param>
+    /// <returns>The new texture.</returns>
+    public Texture CreateTexture2D(uint width, uint height, uint levels, TextureFormat format)
+    {
+        ThrowIfDisposed();
+        if (width == 0 || height == 0 || levels == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width),
+                "Texture dimensions and levels must be non-zero.");
+        }
+        var raw = Native.TextureCreate2d(DangerousGetHandle(), width, height, levels,
+            (int)format);
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateTexture2D");
+        }
+        return new Texture(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.TextureDestroy(engine, handle); }));
+    }
+
     internal IntPtr DangerousGetHandle()
     {
         ThrowIfDisposed();

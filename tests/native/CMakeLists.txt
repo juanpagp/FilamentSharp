@@ -65,6 +65,18 @@ target_compile_options(test_scene PRIVATE -stdlib=libc++ -Wall -Wextra)
 
 add_test(NAME scene COMMAND test_scene)
 
+# ------------------------------------------------------------- test_materials
+add_executable(test_materials test_materials.cpp)
+target_link_libraries(test_materials PRIVATE FilamentSharp.Native)
+target_compile_features(test_materials PRIVATE cxx_std_17)
+target_compile_options(test_materials PRIVATE -stdlib=libc++ -Wall -Wextra)
+target_compile_definitions(test_materials PRIVATE
+    FS_MATERIALS_DIR="${CMAKE_BINARY_DIR}/materials")
+# The material packages are produced by the matc step of the bridge build.
+add_dependencies(test_materials filament_materials)
+
+add_test(NAME materials COMMAND test_materials)
+
 # ------------------------------------------------------------- bridge_smoke
 add_executable(bridge_smoke bridge_smoke.cpp)
 target_link_libraries(bridge_smoke PRIVATE FilamentSharp.Native)
@@ -76,5 +88,5 @@ add_test(NAME bridge_smoke COMMAND bridge_smoke)
 # Every test that links the bridge needs to find the shared library; the dlopen
 # test needs it loadable by soname. Both are satisfied by prepending the
 # library's own directory to LD_LIBRARY_PATH.
-set_tests_properties(abi_c foundation bridge_smoke engine rendering scene PROPERTIES
+set_tests_properties(abi_c foundation bridge_smoke engine rendering scene materials PROPERTIES
     ENVIRONMENT "LD_LIBRARY_PATH=$<TARGET_FILE_DIR:FilamentSharp.Native>:$ENV{LD_LIBRARY_PATH}")

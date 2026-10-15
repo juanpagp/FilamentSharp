@@ -1,0 +1,20 @@
+//
+// Unlit, opaque material with a linear float3 color parameter.
+// Used by tests and the BasicRendering sample.
+//
+material {
+    name : unlit_color,
+    parameters : [
+        { type : float3, name : color }
+    ],
+    requires : [ position ],
+    shadingModel : unlit,
+    blending : opaque
+}
+
+fragment {
+    void material(inout MaterialInputs material) {
+        prepareMaterial(material);
+        material.baseColor = vec4(materialParams.color, 1.0);
+    }
+}

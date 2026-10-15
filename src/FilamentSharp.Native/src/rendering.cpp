@@ -87,7 +87,8 @@ FILAMENTSHARP_API fs_renderer_t* fs_renderer_create(fs_engine_t* engineHandle) {
         }
         auto* wrapper = new fs_renderer(renderer);
         filamentsharp::Registry::instance().addChildLocked(
-                engine, wrapper, &filamentsharp::disposeChild<fs_renderer>);
+                engine, wrapper, &filamentsharp::disposeChild<fs_renderer>,
+                &filamentsharp::destroyChildObject<fs_renderer>);
         return wrapper;
     FS_END_VALUE(nullptr)
 }
@@ -113,7 +114,7 @@ FILAMENTSHARP_API fs_status fs_renderer_destroy(fs_engine_t* engineHandle,
             return FS_ERROR_INVALID_ARG;
         }
         auto* wrapper = static_cast<fs_renderer*>(rendererHandle);
-        engine->engine->destroy(wrapper->renderer);
+        filamentsharp::destroyFilamentObject(engine->engine, wrapper);
         filamentsharp::Registry::instance().removeChildLocked(rendererHandle);
         delete wrapper;
         return FS_OK;
@@ -273,7 +274,8 @@ FILAMENTSHARP_API fs_swap_chain_t* fs_swap_chain_create_headless(
         }
         auto* wrapper = new fs_swap_chain(swapChain);
         filamentsharp::Registry::instance().addChildLocked(
-                engine, wrapper, &filamentsharp::disposeChild<fs_swap_chain>);
+                engine, wrapper, &filamentsharp::disposeChild<fs_swap_chain>,
+                &filamentsharp::destroyChildObject<fs_swap_chain>);
         return wrapper;
     FS_END_VALUE(nullptr)
 }
@@ -299,7 +301,7 @@ FILAMENTSHARP_API fs_status fs_swap_chain_destroy(fs_engine_t* engineHandle,
             return FS_ERROR_INVALID_ARG;
         }
         auto* wrapper = static_cast<fs_swap_chain*>(swapChainHandle);
-        engine->engine->destroy(wrapper->swapChain);
+        filamentsharp::destroyFilamentObject(engine->engine, wrapper);
         filamentsharp::Registry::instance().removeChildLocked(swapChainHandle);
         delete wrapper;
         return FS_OK;
@@ -322,7 +324,8 @@ FILAMENTSHARP_API fs_view_t* fs_view_create(fs_engine_t* engineHandle) {
         }
         auto* wrapper = new fs_view(view);
         filamentsharp::Registry::instance().addChildLocked(
-                engine, wrapper, &filamentsharp::disposeChild<fs_view>);
+                engine, wrapper, &filamentsharp::disposeChild<fs_view>,
+                &filamentsharp::destroyChildObject<fs_view>);
         return wrapper;
     FS_END_VALUE(nullptr)
 }
@@ -347,7 +350,7 @@ FILAMENTSHARP_API fs_status fs_view_destroy(fs_engine_t* engineHandle, fs_view_t
             return FS_ERROR_INVALID_ARG;
         }
         auto* wrapper = static_cast<fs_view*>(viewHolder);
-        engine->engine->destroy(wrapper->view);
+        filamentsharp::destroyFilamentObject(engine->engine, wrapper);
         filamentsharp::Registry::instance().removeChildLocked(viewHolder);
         delete wrapper;
         return FS_OK;
@@ -409,7 +412,8 @@ FILAMENTSHARP_API fs_scene_t* fs_scene_create(fs_engine_t* engineHandle) {
         }
         auto* wrapper = new fs_scene(scene);
         filamentsharp::Registry::instance().addChildLocked(
-                engine, wrapper, &filamentsharp::disposeChild<fs_scene>);
+                engine, wrapper, &filamentsharp::disposeChild<fs_scene>,
+                &filamentsharp::destroyChildObject<fs_scene>);
         return wrapper;
     FS_END_VALUE(nullptr)
 }
@@ -434,7 +438,7 @@ FILAMENTSHARP_API fs_status fs_scene_destroy(fs_engine_t* engineHandle, fs_scene
             return FS_ERROR_INVALID_ARG;
         }
         auto* wrapper = static_cast<fs_scene*>(sceneHandle);
-        engine->engine->destroy(wrapper->scene);
+        filamentsharp::destroyFilamentObject(engine->engine, wrapper);
         filamentsharp::Registry::instance().removeChildLocked(sceneHandle);
         delete wrapper;
         return FS_OK;
@@ -463,7 +467,8 @@ FILAMENTSHARP_API fs_camera_t* fs_camera_create(fs_engine_t* engineHandle,
         }
         auto* wrapper = new fs_camera(camera, filamentEntity);
         filamentsharp::Registry::instance().addChildLocked(
-                engine, wrapper, &filamentsharp::disposeChild<fs_camera>);
+                engine, wrapper, &filamentsharp::disposeChild<fs_camera>,
+                &filamentsharp::destroyChildObject<fs_camera>);
         return wrapper;
     FS_END_VALUE(nullptr)
 }
@@ -489,7 +494,7 @@ FILAMENTSHARP_API fs_status fs_camera_destroy(fs_engine_t* engineHandle,
             return FS_ERROR_INVALID_ARG;
         }
         auto* wrapper = static_cast<fs_camera*>(cameraHandle);
-        engine->engine->destroyCameraComponent(wrapper->entity);
+        filamentsharp::destroyFilamentObject(engine->engine, wrapper);
         filamentsharp::Registry::instance().removeChildLocked(cameraHandle);
         delete wrapper;
         return FS_OK;
