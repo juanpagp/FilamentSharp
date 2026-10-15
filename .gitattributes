@@ -1,0 +1,20 @@
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.cs text diff=csharp
+*.h text
+*.cpp text
+*.c text
+*.md text
+*.csproj text
+*.props text
+*.sln text
+*.yml text
+*.json text
+*.lock text
+
+# Binary assets
+*.filamat binary
+*.glb binary
+*.png binary
+*.ppm binary

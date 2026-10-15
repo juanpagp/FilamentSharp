@@ -1,0 +1,15 @@
+# FilamentSharp dependency lock file.
+# Consumed by scripts/fetch-filament.sh — single source of truth for the pinned
+# Google Filament release used by both the native bridge and the matc toolchain.
+#
+# Upstream does not publish checksums for release assets; the SHA-256 below was
+# computed from the first verified download of this exact artifact from
+# github.com and pins every subsequent fetch (tamper detection against the
+# recorded first-party value).
+
+FILAMENT_VERSION="v1.78.0"
+FILAMENT_COMMIT="c1dc4e444784850d6dc891a1fb38747c30b85463"
+FILAMENT_RELEASE_URL="https://github.com/google/filament/releases/download/v1.78.0/filament-v1.78.0-linux.tgz"
+FILAMENT_SDK_SHA256="6fde729259ef0aaca2b4c1a3768ba2c02ac9a808275bed5f8ae8c15a86c4f6fe"
+FILAMENT_SDK_BYTES="76777878"
+FILAMENT_LICENSE="Apache-2.0 (see external/filament-sdk/LICENSE after fetch; summary in docs/third-party-notices.md)"

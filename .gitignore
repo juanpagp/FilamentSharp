@@ -1,0 +1,41 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+artifacts/
+publish/
+*.nupkg
+
+# Native build directories
+build/
+build-*/
+cmake-build-*/
+
+# Downloaded dependencies and local runtimes (fetched by scripts)
+external/
+!external/.gitkeep
+deps-cache/
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test results
+TestResults/
+*.trx
+
+# Local environment overrides (machine-specific paths, secrets)
+scripts/env.local.sh
+
+# Temporary files
+*.tmp
+*.log

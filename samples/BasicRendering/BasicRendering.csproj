@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>BasicRendering — FilamentSharp sample: headless offscreen rendering of a lit, textured quad and a glTF asset, with pixel readback.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <PublishAot Condition="'$(PublishAot)' == ''">false</PublishAot>
+    <!-- Self-contained Native AOT publish is driven by scripts/publish-aot.sh. -->
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FilamentSharp\FilamentSharp.csproj" />
+  </ItemGroup>
+
+</Project>
