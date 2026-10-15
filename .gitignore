@@ -39,3 +39,6 @@ scripts/env.local.sh
 # Temporary files
 *.tmp
 *.log
+
+# Sample run outputs (written to the working directory by samples)
+*.ppm

@@ -1,5 +1,11 @@
 // FilamentSharp native bridge - public C ABI.
 //
+// WINDOWED RENDERING NOTE: fs_swap_chain_create_native (rendering section)
+// binds a swap chain to an OS window handle (X11 XID on Linux). The bridge
+// itself performs no windowing: creating/mapping/resizing the window and
+// pumping its events is the application's job (see the WindowedRendering
+// sample and docs/windowed-rendering.md).
+//
 // This header is the single source of truth for the boundary between the
 // managed FilamentSharp library and the native bridge. It must remain valid
 // ISO C (compile it with a C compiler - tests/native/test_abi_c.c does exactly
@@ -255,6 +261,30 @@ FILAMENTSHARP_API fs_status fs_renderer_read_pixels_complete(fs_engine_t* engine
 FILAMENTSHARP_API fs_swap_chain_t* fs_swap_chain_create_headless(
         fs_engine_t* engine, uint32_t width, uint32_t height,
         fs_swap_chain_flags_t flags);
+
+/* Creates a swap chain that presents into an operating-system window.
+
+   native_window is a platform window handle. On Linux (the only platform
+   supported by this revision) it is the X11 Window id (XID) of the window
+   you created yourself — the same value XCreateSimpleWindow/XCreateWindow
+   returned, reinterpreted as void*. Filament derives the surface from it:
+     * Vulkan backend: the VkSurfaceKHR is created through XCB from the XID.
+       The X server must be reachable through DISPLAY (a real display or
+       Xvfb both work; see docs/windowed-rendering.md).
+     * OpenGL backend: the XID is used as the GLX drawable; a running X
+       server is mandatory (upstream Filament terminates the process when
+       it is not — see the warning on fs_engine_create).
+
+   Lifecycle on resize: destroy this swap chain and create a new one with
+   the same native_window; Filament re-derives the surface extents from the
+   window. Do this outside begin_frame/end_frame.
+
+   Returns the handle, or NULL with the error text set when the engine is
+   null/unknown/destroyed, when native_window is null (rejected by the
+   bridge — Filament would otherwise hand the null pointer to the platform
+   layer, which dereferences it), or when surface creation fails. */
+FILAMENTSHARP_API fs_swap_chain_t* fs_swap_chain_create_native(
+        fs_engine_t* engine, void* native_window, fs_swap_chain_flags_t flags);
 
 /* Destroys a swap chain (same semantics as fs_renderer_destroy). */
 FILAMENTSHARP_API fs_status fs_swap_chain_destroy(fs_engine_t* engine,

@@ -49,6 +49,9 @@ static void runScenario(fs_backend backend, const char* name, bool verifyPixels)
 
     // Argument validation.
     CHECK(fs_swap_chain_create_headless(engine, 0, H, 0) == nullptr);
+    CHECK(fs_swap_chain_create_native(engine, nullptr, 0) == nullptr);
+    CHECK(std::strstr(fs_get_last_error(), "null") != nullptr);
+    CHECK(fs_swap_chain_create_native(nullptr, (void*)0x1, 0) == nullptr);
     CHECK(fs_camera_create(engine, 0) == nullptr);
     CHECK(fs_camera_set_projection(engine, camera, -10.0, 1.0, 0.1, 100.0, 0)
           == FS_ERROR_INVALID_ARG);
@@ -111,6 +114,25 @@ static void runScenario(fs_backend backend, const char* name, bool verifyPixels)
         CHECK(std::abs(g - srgbEncode(0.2f)) < eps);
         CHECK(std::abs(b - srgbEncode(0.3f)) < eps);
         CHECK(std::abs(a - 1.0f) < eps);
+    }
+
+    // Native-window swap chain lifecycle (NOOP only: the platform layer
+    // ignores the handle there. On the Vulkan path a fake XID would be
+    // dereferenced by XCB; real windowed rendering is exercised by the
+    // WindowedRendering sample - see docs/windowed-rendering.md).
+    if (backend == FS_BACKEND_NOOP) {
+        fs_swap_chain_t* native = fs_swap_chain_create_native(engine, (void*)0x1234, 0);
+        CHECK(native != nullptr);
+        if (native != nullptr) {
+            int32_t nativeBegan = 0;
+            CHECK(fs_renderer_begin_frame(engine, renderer, native, 0, &nativeBegan) == FS_OK);
+            CHECK(nativeBegan == 1);
+            CHECK(fs_renderer_render(engine, renderer, view) == FS_OK);
+            CHECK(fs_renderer_end_frame(engine, renderer) == FS_OK);
+            CHECK(fs_swap_chain_destroy(engine, native) == FS_OK);
+            CHECK(fs_swap_chain_destroy(engine, native) == FS_ERROR_INVALID_ARG);
+        }
+        std::printf("test_rendering:   native swap chain lifecycle OK (noop)\n");
     }
 
     // Invalidated-after-engine-destroy semantics for children.

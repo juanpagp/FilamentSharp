@@ -60,7 +60,7 @@ headers at build time (native layout static-asserts) and at runtime
 
 | Area | Rationale |
 |---|---|
-| On-screen swap chains (X11/Wayland/Win32 windows) | This revision targets headless/offscreen rendering; window-system integration is a platform decision (windowing library, event loop) that belongs in a follow-up |
+| On-screen swap chains (X11/Wayland/Win32 windows) | The X11 path is bound (`fs_swap_chain_create_native` + `Engine.CreateNativeSwapChain`, exercised by the `WindowedRendering` sample); Wayland/Win32/macOS handles remain out of scope for this revision — the bridge takes a raw `void*` platform handle by design, so adding them is a platform-layer decision, not an ABI change |
 | Skyboxes, `IndirectLight`, IBL (`cmgen`) | Image-based lighting pipeline (`.cmgen` environment maps) is substantial and not required for the covered scenes; materials fall back to analytic lighting |
 | Post-processing stack (`View.SetPostProcessingEnabled`, bloom, DOF, TAA, color grading) | `View` exposes the pipeline enable switches through clear/viewport today; per-effect quality settings are follow-up surface |
 | Morph targets / skinning on hand-built renderables | glTF skinning works through the gltfio path (`Animator`); manual skinning buffer APIs are not exposed |
@@ -71,7 +71,7 @@ headers at build time (native layout static-asserts) and at runtime
 
 ## ABI surface
 
-The C ABI (`src/FilamentSharp.Native/include/filamentsharp/abi.h`) exposes 75
+The C ABI (`src/FilamentSharp.Native/include/filamentsharp/abi.h`) exposes 76
 `fs_*` entry points (each mirrored by a source-generated LibraryImport
 declaration) under a single opaque-handle + status-code model with
 ABI version 1. Every entry point:

@@ -43,6 +43,8 @@ int main(void) {
     fs_engine_t* (*engine_create)(fs_backend) = (fs_engine_t * (*)(fs_backend))dlsym(handle, "fs_engine_create");
     void (*engine_destroy)(fs_engine_t*) = (void (*)(fs_engine_t*))dlsym(handle, "fs_engine_destroy");
     fs_backend (*engine_get_backend)(fs_engine_t*) = (fs_backend (*)(fs_engine_t*))dlsym(handle, "fs_engine_get_backend");
+    fs_swap_chain_t* (*swap_chain_create_native)(fs_engine_t*, void*, fs_swap_chain_flags_t) =
+        (fs_swap_chain_t * (*)(fs_engine_t*, void*, fs_swap_chain_flags_t))dlsym(handle, "fs_swap_chain_create_native");
 
     CHECK(abi_version != NULL);
     CHECK(filament_version != NULL);
@@ -52,6 +54,7 @@ int main(void) {
     CHECK(engine_create != NULL);
     CHECK(engine_destroy != NULL);
     CHECK(engine_get_backend != NULL);
+    CHECK(swap_chain_create_native != NULL);
     if (g_failures > 0) {
         fprintf(stderr, "symbol resolution failed\n");
         dlclose(handle);
@@ -81,6 +84,14 @@ int main(void) {
     CHECK(noop != NULL);
     if (noop != NULL) {
         CHECK(engine_get_backend(noop) == FS_BACKEND_NOOP);
+        /* Native-window swap chain argument validation through the C ABI
+           (the full windowed lifecycle needs a display; that is exercised by
+           the WindowedRendering sample and covered in test_rendering on the
+           NOOP backend). */
+        CHECK(swap_chain_create_native(NULL, (void*)0x1, 0) == NULL);
+        CHECK(swap_chain_create_native(noop, NULL, 0) == NULL);
+        CHECK(strcmp(get_last_error(), "") != 0);
+        clear_last_error();
         engine_destroy(noop);
         engine_destroy(noop); /* idempotent */
     }
@@ -91,6 +102,6 @@ int main(void) {
         fprintf(stderr, "test_abi_c: %d failure(s)\n", g_failures);
         return 1;
     }
-    printf("test_abi_c: OK (header is valid C; %d symbols resolved and validated)\n", 8);
+    printf("test_abi_c: OK (header is valid C; %d symbols resolved and validated)\n", 9);
     return 0;
 }

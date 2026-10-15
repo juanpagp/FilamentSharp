@@ -280,6 +280,37 @@ FILAMENTSHARP_API fs_swap_chain_t* fs_swap_chain_create_headless(
     FS_END_VALUE(nullptr)
 }
 
+FILAMENTSHARP_API fs_swap_chain_t* fs_swap_chain_create_native(
+        fs_engine_t* engineHandle, void* nativeWindow, fs_swap_chain_flags_t flags) {
+    FS_TRY
+        if (nativeWindow == nullptr) {
+            // Rejected here on purpose: Filament hands the pointer straight to
+            // the platform layer, which dereferences it (the OpenGL path
+            // crashes on a null drawable; the Vulkan path asserts in XCB).
+            filamentsharp::setLastError("native window handle is null");
+            return nullptr;
+        }
+        std::unique_lock<std::mutex> lock;
+        fs_engine* engine = acquireEngine(lock, engineHandle);
+        if (engine == nullptr) {
+            return nullptr;
+        }
+        // Filament derives the surface from the platform handle: on Linux it
+        // creates the VkSurfaceKHR through XCB (Vulkan) or uses the XID as the
+        // GLX drawable (OpenGL). The bridge performs no windowing of its own.
+        filament::SwapChain* swapChain = engine->engine->createSwapChain(nativeWindow, flags);
+        if (swapChain == nullptr) {
+            filamentsharp::setLastError("filament::Engine::createSwapChain(native) returned null");
+            return nullptr;
+        }
+        auto* nativeWrapper = new fs_swap_chain(swapChain);
+        filamentsharp::Registry::instance().addChildLocked(
+                engine, nativeWrapper, &filamentsharp::disposeChild<fs_swap_chain>,
+                &filamentsharp::destroyChildObject<fs_swap_chain>);
+        return nativeWrapper;
+    FS_END_VALUE(nullptr)
+}
+
 FILAMENTSHARP_API fs_status fs_swap_chain_destroy(fs_engine_t* engineHandle,
         fs_swap_chain_t* swapChainHandle) {
     FS_TRY
