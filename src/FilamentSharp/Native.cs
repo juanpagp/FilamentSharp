@@ -101,6 +101,10 @@ internal static unsafe partial class Native
     internal static partial IntPtr SwapChainCreateHeadless(IntPtr engine,
         uint width, uint height, ulong flags);
 
+    [LibraryImport(LibraryName, EntryPoint = "fs_swap_chain_create_native")]
+    internal static partial IntPtr SwapChainCreateNative(IntPtr engine,
+        IntPtr nativeWindow, ulong flags);
+
     [LibraryImport(LibraryName, EntryPoint = "fs_swap_chain_destroy")]
     internal static partial int SwapChainDestroy(IntPtr engine, IntPtr swapChain);
 

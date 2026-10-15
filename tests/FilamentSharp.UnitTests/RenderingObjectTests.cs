@@ -42,6 +42,49 @@ public sealed class RenderingObjectTests
     }
 
     [Fact]
+    public void NativeSwapChainRequiresNonZeroWindow()
+    {
+        using var engine = Engine.Create(Backend.Noop);
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => engine.CreateNativeSwapChain(IntPtr.Zero));
+    }
+
+    [Fact]
+    public void NativeSwapChainLifecycleOnNoop()
+    {
+        // The NOOP backend's platform layer ignores the window handle, so a
+        // fake XID exercises the full managed lifecycle (create -> frame loop
+        // -> dispose) without a display. Real windowed rendering on Vulkan is
+        // covered by the WindowedRendering sample (docs/windowed-rendering.md).
+        using var engine = Engine.Create(Backend.Noop);
+        using var renderer = engine.CreateRenderer();
+        using var swapChain = engine.CreateNativeSwapChain((IntPtr)0x1234);
+        using var view = engine.CreateView();
+
+        var entity = EntityManager.Create();
+        using var camera = engine.CreateCamera(entity);
+        camera.SetProjection(45.0, 1.0, 0.1, 100.0);
+        camera.LookAt(new Vector3(0, 0, 5), Vector3.Zero);
+        view.SetCamera(camera);
+        view.SetViewport(0, 0, 32, 32);
+
+        Assert.True(renderer.BeginFrame(swapChain));
+        renderer.Render(view);
+        renderer.EndFrame();
+
+        EntityManager.Destroy(entity);
+    }
+
+    [Fact]
+    public void NativeSwapChainFactoryThrowsAfterEngineDisposal()
+    {
+        var engine = Engine.Create(Backend.Noop);
+        engine.Dispose();
+        Assert.Throws<ObjectDisposedException>(
+            () => engine.CreateNativeSwapChain((IntPtr)0x1234));
+    }
+
+    [Fact]
     public void CameraRequiresValidEntity()
     {
         using var engine = Engine.Create(Backend.Noop);

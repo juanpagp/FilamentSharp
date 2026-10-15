@@ -45,6 +45,12 @@ public sealed class BridgeInteropTests
         Native.EngineDestroy(engine);
         Native.EngineDestroy(IntPtr.Zero);
 
+        // Native-window swap chain entry point: symbol resolves, argument
+        // validation rejects a null window through the raw ABI as well.
+        Assert.Equal(IntPtr.Zero, Native.SwapChainCreateNative(IntPtr.Zero, (IntPtr)0x1, 0));
+        Assert.NotEqual(string.Empty, Native.GetLastError());
+        Native.ClearLastError();
+
         // Error state is per-call: the successful calls above left it empty.
         Assert.Equal(string.Empty, Native.GetLastError());
 

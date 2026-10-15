@@ -154,6 +154,43 @@ public sealed class Engine : IDisposable
             (engine, handle) => { _ = Native.SwapChainDestroy(engine, handle); }));
     }
 
+    /// <summary>Creates a swap chain that presents into an OS window.</summary>
+    /// <param name="nativeWindow">
+    /// The platform window handle. On Linux this is the X11 <c>Window</c> id
+    /// (XID) — the same value XCreateWindow/XCreateSimpleWindow returned,
+    /// passed as <see cref="IntPtr"/>. Filament derives the surface from it
+    /// (Vulkan: <c>VkSurfaceKHR</c> through XCB; OpenGL: the GLX drawable).
+    /// </param>
+    /// <param name="flags">Swap chain configuration flags.</param>
+    /// <returns>A swap chain bound to the window. Dispose it and create a new
+    /// one (same <paramref name="nativeWindow"/>) when the window is resized,
+    /// outside any begin/end frame pair.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <paramref name="nativeWindow"/> is zero.</exception>
+    /// <exception cref="FilamentSharpException">Surface creation failed.</exception>
+    /// <remarks>
+    /// The X server must be reachable through <c>DISPLAY</c>. See the
+    /// WindowedRendering sample and docs/windowed-rendering.md.
+    /// </remarks>
+    public SwapChain CreateNativeSwapChain(IntPtr nativeWindow,
+        SwapChainConfig flags = SwapChainConfig.None)
+    {
+        ThrowIfDisposed();
+        if (nativeWindow == IntPtr.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(nativeWindow),
+                "The native window handle must be non-zero (the X11 Window id).");
+        }
+        var raw = Native.SwapChainCreateNative(DangerousGetHandle(), nativeWindow,
+            (ulong)flags);
+        if (raw == IntPtr.Zero)
+        {
+            throw ThrowHelper.NativeFailure("Engine.CreateNativeSwapChain");
+        }
+        return new SwapChain(this, new ChildSafeHandle(raw, DangerousGetHandle(),
+            (engine, handle) => { _ = Native.SwapChainDestroy(engine, handle); }));
+    }
+
     /// <summary>Creates a view owned by this engine.</summary>
     public View CreateView()
     {

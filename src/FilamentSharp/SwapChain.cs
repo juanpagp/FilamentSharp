@@ -37,14 +37,20 @@ public enum SwapChainConfig : ulong
 }
 
 /// <summary>
-/// An offscreen (headless) swap chain. Rendering happens into its buffers
-/// without any window system involvement; retrieve the result with
-/// <see cref="Renderer.ReadPixels(uint, uint, uint, uint)"/>.
+/// A swap chain: the presentable surface a <see cref="Renderer"/> renders
+/// into. Two flavors exist:
+/// <list type="bullet">
+/// <item><b>Headless</b> (offscreen), created with
+/// <see cref="Engine.CreateHeadlessSwapChain"/>: no window system is
+/// involved; retrieve the result with
+/// <see cref="Renderer.ReadPixels(uint, uint, uint, uint)"/>.</item>
+/// <item><b>Native</b> (windowed), created with
+/// <see cref="Engine.CreateNativeSwapChain"/>: bound to an OS window handle
+/// (on Linux the X11 <c>Window</c> id). Frames present into that window; the
+/// application owns the window and its event loop — see the
+/// WindowedRendering sample and docs/windowed-rendering.md.</item>
+/// </list>
 /// </summary>
-/// <remarks>
-/// Windowed swap chains (from OS surface handles) are deliberately not part
-/// of the public API in this release; see docs/api-coverage.md.
-/// </remarks>
 public sealed class SwapChain : FilamentObject
 {
     internal SwapChain(Engine engine, ChildSafeHandle handle)
