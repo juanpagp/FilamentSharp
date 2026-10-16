@@ -103,9 +103,10 @@ public sealed class Renderer : FilamentObject
 
     /// <summary>
     /// Completes the pending readback (flushing the engine as needed) and
-    /// returns the pixels as top-down RGBA rows... note that Filament's
-    /// readback is bottom-up: row 0 in the returned buffer is the bottom
-    /// row of the image.
+    /// returns the pixels as RGBA8 rows ordered top-down: row 0 is the top
+    /// row of the image, matching the PPM writing convention. (Verified
+    /// empirically against the pinned Vulkan stack: content above the
+    /// camera axis lands in the low row indices.)
     /// </summary>
     /// <returns>
     /// The RGBA8 pixel buffer (<c>width*height*4</c> bytes), or <c>null</c>

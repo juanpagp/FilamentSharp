@@ -126,6 +126,9 @@ internal static unsafe partial class Native
     internal static partial int ViewSetViewport(IntPtr engine, IntPtr view,
         int left, int bottom, uint width, uint height);
 
+    [LibraryImport(LibraryName, EntryPoint = "fs_view_set_blend_mode")]
+    internal static partial int ViewSetBlendMode(IntPtr engine, IntPtr view, int blendMode);
+
     // ------------------------------------------------------------------- scene
 
     [LibraryImport(LibraryName, EntryPoint = "fs_scene_create")]

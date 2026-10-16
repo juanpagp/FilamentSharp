@@ -1,5 +1,25 @@
 namespace FilamentSharp;
 
+/// <summary>
+/// How a view composites onto the swap chain content produced by views
+/// rendered earlier in the same frame. Mirrors <c>filament::BlendMode</c>.
+/// </summary>
+public enum ViewBlendMode
+{
+    /// <summary>
+    /// The view owns the frame: pixels it does not render are replaced with
+    /// the renderer's clear color (default).
+    /// </summary>
+    Opaque = 0,
+
+    /// <summary>
+    /// The view blends over content already rendered in this frame; pixels it
+    /// does not render keep that content. This is the overlay layer mode
+    /// (screen-space text/UI rendered after the 3D view).
+    /// </summary>
+    Translucent = 1,
+}
+
 /// <summary>A view: binds a scene, a camera and a viewport for rendering.</summary>
 public sealed class View : FilamentObject
 {
@@ -36,6 +56,20 @@ public sealed class View : FilamentObject
         ThrowIfDisposed();
         Native.ViewSetViewport(Engine.DangerousGetHandle(), RawHandle,
             left, bottom, width, height).Check(nameof(View.SetViewport));
+    }
+
+    /// <summary>
+    /// Sets how this view composites onto the swap chain when several views
+    /// are rendered in one frame. The default (<see cref="ViewBlendMode.Opaque"/>)
+    /// replaces pixels the view does not render with the clear color;
+    /// <see cref="ViewBlendMode.Translucent"/> blends and preserves earlier
+    /// views' content — use it for the overlay layers.
+    /// </summary>
+    public void SetBlendMode(ViewBlendMode blendMode)
+    {
+        ThrowIfDisposed();
+        Native.ViewSetBlendMode(Engine.DangerousGetHandle(), RawHandle, (int)blendMode)
+            .Check(nameof(View.SetBlendMode));
     }
 }
 

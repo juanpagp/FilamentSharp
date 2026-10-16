@@ -207,6 +207,13 @@ enum fs_fov_direction {
     FS_FOV_HORIZONTAL = 1
 };
 
+/* View blend mode (mirrors filament::BlendMode): how a view composites onto
+   the swap chain content produced by previously rendered views. */
+enum fs_blend_mode {
+    FS_BLEND_MODE_OPAQUE = 0,
+    FS_BLEND_MODE_TRANSLUCENT = 1
+};
+
 /* ---- Renderer --------------------------------------------------------- */
 
 /* Creates a renderer. NULL on failure (engine null/destroyed). */
@@ -309,6 +316,13 @@ FILAMENTSHARP_API fs_status fs_view_set_camera(fs_engine_t* engine, fs_view_t* v
 /* Sets the view's viewport in pixels. */
 FILAMENTSHARP_API fs_status fs_view_set_viewport(fs_engine_t* engine, fs_view_t* view,
         int32_t left, int32_t bottom, uint32_t width, uint32_t height);
+
+/* Sets how the view composites onto swap chain content rendered by earlier
+   views in the same frame (OPAQUE replaces untouched pixels with the clear
+   color; TRANSLUCENT blends and lets earlier content show through). Required
+   for layered rendering such as screen-space text overlays. */
+FILAMENTSHARP_API fs_status fs_view_set_blend_mode(fs_engine_t* engine, fs_view_t* view,
+        int32_t blend_mode);
 
 /* ---- Scene ------------------------------------------------------------- */
 

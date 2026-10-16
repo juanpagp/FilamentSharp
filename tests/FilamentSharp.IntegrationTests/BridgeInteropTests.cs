@@ -64,6 +64,15 @@ public sealed class BridgeInteropTests
             Native.ClearLastError();
             orthoCamera.SetOrthographicProjection(0.0, 640.0, 0.0, 480.0, -1.0, 1.0);
             EntityManager.Destroy(cameraEntity);
+
+            // Blend-mode entry point: symbol resolves, invalid values are
+            // rejected, the translucent overlay mode round-trips.
+            using var overlayView = noopEngine.CreateView();
+            Assert.Equal((int)NativeStatus.InvalidArg, Native.ViewSetBlendMode(
+                noopEngine.DangerousGetHandle(), overlayView.RawHandle, 42));
+            Assert.NotEqual(string.Empty, Native.GetLastError());
+            Native.ClearLastError();
+            overlayView.SetBlendMode(ViewBlendMode.Translucent);
         }
         Native.ClearLastError();
 

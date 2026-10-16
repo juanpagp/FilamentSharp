@@ -427,6 +427,23 @@ FILAMENTSHARP_API fs_status fs_view_set_viewport(fs_engine_t* engineHandle, fs_v
     FS_END_VALUE(FS_ERROR)
 }
 
+FILAMENTSHARP_API fs_status fs_view_set_blend_mode(fs_engine_t* engineHandle, fs_view_t* viewHolder,
+        int32_t blendMode) {
+    FS_TRY
+        if (blendMode != FS_BLEND_MODE_OPAQUE && blendMode != FS_BLEND_MODE_TRANSLUCENT) {
+            filamentsharp::setLastError(
+                    "blend mode must be FS_BLEND_MODE_OPAQUE(0) or FS_BLEND_MODE_TRANSLUCENT(1)");
+            return FS_ERROR_INVALID_ARG;
+        }
+        FS_ACQUIRE_CHILD(lock, engine, engineHandle, fs_view, view, viewHolder)
+        (void)engine; (void)lock;
+        view->view->setBlendMode(blendMode == FS_BLEND_MODE_TRANSLUCENT
+                ? filament::BlendMode::TRANSLUCENT
+                : filament::BlendMode::OPAQUE);
+        return FS_OK;
+    FS_END_VALUE(FS_ERROR)
+}
+
 // ------------------------------------------------------------------- scene
 
 FILAMENTSHARP_API fs_scene_t* fs_scene_create(fs_engine_t* engineHandle) {
