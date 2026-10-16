@@ -21,7 +21,7 @@ headers at build time (native layout static-asserts) and at runtime
 | `SwapChain` | `SwapChain`, `SwapChainConfig` | Headless (offscreen) **and** native-window swap chains (`Engine.CreateNativeSwapChain(XID)` — X11 on Linux; surface via XCB on Vulkan, GLX on OpenGL; resize = destroy + recreate on the same handle). `SwapChainConfig` flags mirror `backend::SwapChainFlags` |
 | `View` | `View` | Camera/scene wiring, viewport, background clear color; null scene accepted |
 | `Scene` | `Scene` | Add/remove/query entities, entity counts, membership |
-| `Camera` | `Camera` | Perspective/orthographic projection (all FOV directions), `LookAt`, view/projection matrix readback |
+| `Camera` | `Camera` | Perspective/orthographic projection (perspective: all FOV directions; orthographic: full 6-plane slab — added for screen-space overlay layers such as PAL's text renderer), `LookAt`, view/projection matrix readback |
 | `EntityManager` | `EntityManager` | Create/destroy entities (process-global, not engine-owned) |
 | Transforms | `Engine.SetTransform`, `Engine.GetTransform`, `Engine.SetParent` | `mat4` world/local transforms via System.Numerics |
 | `VertexBuffer` | `VertexBuffer`, `VertexAttributeDescription`, `VertexAttribute`, `ElementType` | All 12 standard attributes + custom attributes; all 26 element types; multi-buffer or interleaved layouts; per-buffer upload |
@@ -71,10 +71,11 @@ headers at build time (native layout static-asserts) and at runtime
 
 ## ABI surface
 
-The C ABI (`src/FilamentSharp.Native/include/filamentsharp/abi.h`) exposes 76
+The C ABI (`src/FilamentSharp.Native/include/filamentsharp/abi.h`) exposes 77
 `fs_*` entry points (each mirrored by a source-generated LibraryImport
 declaration) under a single opaque-handle + status-code model with
-ABI version 1. Every entry point:
+ABI version 1 (the orthographic-projection entry point added for screen-space
+overlays is an additive extension; ABI version 1 clients are unaffected). Every entry point:
 
 - is `extern "C"`, uses fixed-width types, and performs no I/O,
 - converts C++ exceptions into `fs_status` + thread-local error text

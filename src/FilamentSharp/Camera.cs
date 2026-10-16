@@ -45,6 +45,27 @@ public sealed class Camera : FilamentObject
     }
 
     /// <summary>
+    /// Sets an orthographic projection mapping the given world-space slab onto
+    /// the viewport. Useful for screen-space layers (text/UI overlays, 2D
+    /// content) — e.g. <c>left=0, right=width, top=0, bottom=height</c> with
+    /// the camera looking down -Z maps world units to pixels.
+    /// </summary>
+    /// <param name="left">Left plane (world units).</param>
+    /// <param name="right">Right plane (must differ from <paramref name="left"/>).</param>
+    /// <param name="bottom">Bottom plane (world units).</param>
+    /// <param name="top">Top plane (must differ from <paramref name="bottom"/>).</param>
+    /// <param name="near">Near plane distance (must differ from <paramref name="far"/>).</param>
+    /// <param name="far">Far plane distance.</param>
+    public void SetOrthographicProjection(double left, double right, double bottom,
+        double top, double near, double far)
+    {
+        ThrowIfDisposed();
+        Native.CameraSetOrthographicProjection(Engine.DangerousGetHandle(), RawHandle,
+            left, right, bottom, top, near, far)
+            .Check(nameof(Camera.SetOrthographicProjection));
+    }
+
+    /// <summary>
     /// Positions and orients the camera. The camera looks from
     /// <paramref name="eye"/> towards <paramref name="center"/>, with
     /// <paramref name="up"/> as the world-space up direction.

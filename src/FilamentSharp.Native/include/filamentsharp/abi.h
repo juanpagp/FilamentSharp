@@ -334,6 +334,15 @@ FILAMENTSHARP_API fs_status fs_camera_set_projection(fs_engine_t* engine,
         fs_camera_t* camera, double fov_degrees, double aspect,
         double near_plane, double far_plane, int32_t fov_direction);
 
+/* Sets an orthographic projection (maps the given world-space slab onto the
+   viewport). Requires left != right, bottom != top, near != far. Added for
+   screen-space overlay layers (text/UI); mirrors filament's
+   Camera::setProjection(Projection::ORTHO, ...). */
+FILAMENTSHARP_API fs_status fs_camera_set_orthographic_projection(
+        fs_engine_t* engine, fs_camera_t* camera,
+        double left, double right, double bottom, double top,
+        double near_plane, double far_plane);
+
 /* Orients the camera: eye/center/up point to 3 doubles each. */
 FILAMENTSHARP_API fs_status fs_camera_look_at(fs_engine_t* engine,
         fs_camera_t* camera, const double* eye, const double* center,

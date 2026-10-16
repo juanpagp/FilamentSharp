@@ -51,6 +51,22 @@ public sealed class BridgeInteropTests
         Assert.NotEqual(string.Empty, Native.GetLastError());
         Native.ClearLastError();
 
+        // Orthographic projection entry point: symbol resolves, argument
+        // validation rejects degenerate slabs through the raw ABI.
+        using (var noopEngine = Engine.Create(Backend.Noop))
+        {
+            var cameraEntity = EntityManager.Create();
+            using var orthoCamera = noopEngine.CreateCamera(cameraEntity);
+            Assert.Equal((int)NativeStatus.InvalidArg, Native.CameraSetOrthographicProjection(
+                noopEngine.DangerousGetHandle(), orthoCamera.RawHandle,
+                0.0, 0.0, 0.0, 480.0, -1.0, 1.0));
+            Assert.NotEqual(string.Empty, Native.GetLastError());
+            Native.ClearLastError();
+            orthoCamera.SetOrthographicProjection(0.0, 640.0, 0.0, 480.0, -1.0, 1.0);
+            EntityManager.Destroy(cameraEntity);
+        }
+        Native.ClearLastError();
+
         // Error state is per-call: the successful calls above left it empty.
         Assert.Equal(string.Empty, Native.GetLastError());
 

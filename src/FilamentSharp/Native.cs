@@ -147,6 +147,11 @@ internal static unsafe partial class Native
         double fovDegrees, double aspect, double nearPlane, double farPlane,
         int fovDirection);
 
+    [LibraryImport(LibraryName, EntryPoint = "fs_camera_set_orthographic_projection")]
+    internal static partial int CameraSetOrthographicProjection(IntPtr engine, IntPtr camera,
+        double left, double right, double bottom, double top,
+        double nearPlane, double farPlane);
+
     [LibraryImport(LibraryName, EntryPoint = "fs_camera_look_at")]
     internal static partial int CameraLookAt(IntPtr engine, IntPtr camera,
         ReadOnlySpan<double> eye, ReadOnlySpan<double> center, ReadOnlySpan<double> up);

@@ -551,6 +551,24 @@ FILAMENTSHARP_API fs_status fs_camera_set_projection(fs_engine_t* engineHandle,
     FS_END_VALUE(FS_ERROR)
 }
 
+FILAMENTSHARP_API fs_status fs_camera_set_orthographic_projection(fs_engine_t* engineHandle,
+        fs_camera_t* cameraHandle, double left, double right, double bottom, double top,
+        double nearPlane, double farPlane) {
+    FS_TRY
+        if (left == right || bottom == top || nearPlane == farPlane) {
+            filamentsharp::setLastError(
+                    "invalid orthographic projection: left != right, bottom != top, "
+                    "near != far required");
+            return FS_ERROR_INVALID_ARG;
+        }
+        FS_ACQUIRE_CHILD(lock, engine, engineHandle, fs_camera, camera, cameraHandle)
+        (void)engine; (void)lock;
+        camera->camera->setProjection(filament::Camera::Projection::ORTHO,
+                left, right, bottom, top, nearPlane, farPlane);
+        return FS_OK;
+    FS_END_VALUE(FS_ERROR)
+}
+
 FILAMENTSHARP_API fs_status fs_camera_look_at(fs_engine_t* engineHandle,
         fs_camera_t* cameraHandle, const double* eye, const double* center,
         const double* up) {

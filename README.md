@@ -34,7 +34,7 @@ The stack is:
 ```
 C# application
   └─ FilamentSharp (net10.0, source-generated P/Invoke, SafeHandle ownership)
-       └─ libFilamentSharp.Native.so (stable C ABI bridge: 76 fs_* entry points,
+       └─ libFilamentSharp.Native.so (stable C ABI bridge: 77 fs_* entry points,
           error model, versioned ABI, ownership registry)
             └─ Google Filament v1.78.0 (official prebuilt release SDK, Apache-2.0)
                  └─ Vulkan (software ICD works headless) or NOOP
