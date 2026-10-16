@@ -71,7 +71,7 @@ headers at build time (native layout static-asserts) and at runtime
 
 ## ABI surface
 
-The C ABI (`src/FilamentSharp.Native/include/filamentsharp/abi.h`) exposes 77
+The C ABI (`src/FilamentSharp.Native/include/filamentsharp/abi.h`) exposes 78
 `fs_*` entry points (each mirrored by a source-generated LibraryImport
 declaration) under a single opaque-handle + status-code model with
 ABI version 1 (the orthographic-projection entry point added for screen-space
