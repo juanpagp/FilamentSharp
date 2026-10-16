@@ -179,8 +179,9 @@ public sealed class RenderingObjectTests
         camera.LookAt(new Vector3(0, 0, 5), Vector3.Zero);
 
         var projection = camera.ProjectionMatrix;
-        // GL-style perspective matrix in System.Numerics layout.
-        Assert.Equal(-1.0f, projection.M43, 5);
+        // GL-style perspective matrix in System.Numerics row-vector layout:
+        // w' = -z comes from M34 (v' = v*M), the depth offset from M43.
+        Assert.Equal(-1.0f, projection.M34, 5);
         Assert.Equal(0.0f, projection.M44, 5);
         Assert.True(projection.M11 > 0.5f && projection.M11 < 5.0f);
 
