@@ -42,3 +42,6 @@ scripts/env.local.sh
 
 # Sample run outputs (written to the working directory by samples)
 *.ppm
+
+# NuGet package output (created by scripts/pack.sh)
+artifacts/
